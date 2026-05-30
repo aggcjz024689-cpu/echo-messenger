@@ -208,8 +208,6 @@ async def broadcast_users_list():
 
 if __name__ == "__main__":
     import uvicorn
-    print("="*50)
-    print("🚀 ЭХО МЕССЕНДЖЕР ЗАПУЩЕН!")
-    print("📡 http://localhost:8000")
-    print("="*50)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
