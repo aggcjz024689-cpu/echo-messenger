@@ -20,13 +20,13 @@ app.add_middleware(
 )
 
 # ========== ХРАНИЛИЩА ==========
-users_db: Dict[str, dict] = {}
-messages_db: List[dict] = []
+users_db: Dict[str, dict] = {}  # user_id -> {username, display_name, password, bio, avatar_color, created_at}
+messages_db: List[dict] = []    # личные сообщения
 active_connections: Dict[str, WebSocket] = {}
 online_users: Dict[str, bool] = {}
 
 # Групповые чаты
-groups_db: Dict[str, dict] = {}  # group_id -> {name, avatar_color, created_by, created_at, members: Set}
+groups_db: Dict[str, dict] = {}  # group_id -> {name, avatar_color, created_by, members: Set, created_at}
 group_messages_db: List[dict] = []
 
 # ========== МОДЕЛИ ==========
@@ -45,7 +45,7 @@ class UpdateProfile(BaseModel):
 
 class CreateGroup(BaseModel):
     name: str
-    members: List[str]  # user_id списки
+    members: List[str]
 
 class AddMembers(BaseModel):
     group_id: str
@@ -168,6 +168,7 @@ async def get_groups():
             'name': data['name'],
             'avatar_color': data['avatar_color'],
             'members_count': len(data['members']),
+            'members': list(data['members']),
             'created_at': data['created_at']
         })
     return result
@@ -177,7 +178,6 @@ async def get_group(group_id: str):
     if group_id not in groups_db:
         raise HTTPException(status_code=404, detail="Group not found")
     data = groups_db[group_id]
-    # Получаем информацию об участниках
     members_info = []
     for uid in data['members']:
         if uid in users_db:
@@ -205,7 +205,7 @@ async def add_members(group_id: str, members: AddMembers):
 
 @app.get("/api/groups/{group_id}/messages")
 async def get_group_messages(group_id: str, limit: int = 50):
-    history = [msg for msg in group_messages_db if msg['group_id'] == group_id]
+    history = [msg for msg in group_messages_db if msg.get('group_id') == group_id]
     history.sort(key=lambda x: x.get('created_at', ''))
     return history[-limit:]
 
@@ -221,6 +221,49 @@ async def get_messages(other_user_id: str, user_id: str = None):
             history.append(msg)
     history.sort(key=lambda x: x.get('created_at', ''))
     return history[-50:]
+
+# ========== АВТО-СОЗДАНИЕ ТЕСТОВЫХ ПОЛЬЗОВАТЕЛЕЙ ==========
+def create_test_users():
+    """Создаёт тестовых пользователей при запуске сервера"""
+    test_users = [
+        {
+            'username': '@admin',
+            'display_name': 'Администратор',
+            'password': 'Admin@2024!Secure'
+        },
+        {
+            'username': '@test',
+            'display_name': 'Тестовый Пользователь',
+            'password': 'Test@2024!Password'
+        },
+        {
+            'username': '@sergey',
+            'display_name': 'Сергей',
+            'password': 'Sergey@2024!EchoMessenger'
+        }
+    ]
+    
+    for user_data in test_users:
+        exists = False
+        for uid, existing in users_db.items():
+            if existing['username'] == user_data['username']:
+                exists = True
+                break
+        
+        if not exists:
+            user_id = secrets.token_urlsafe(16)
+            users_db[user_id] = {
+                'id': user_id,
+                'username': user_data['username'],
+                'display_name': user_data['display_name'],
+                'password': user_data['password'],
+                'bio': 'Тестовый аккаунт. Добро пожаловать в ЭХО!',
+                'avatar_color': get_avatar_color(user_data['username']),
+                'created_at': datetime.now().isoformat()
+            }
+            print(f"✅ Создан тестовый пользователь: {user_data['username']} (пароль: {user_data['password']})")
+        else:
+            print(f"👤 Пользователь уже существует: {user_data['username']}")
 
 # ========== WEB SOCKET ==========
 @app.websocket("/ws")
@@ -287,7 +330,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 }
                 group_messages_db.append(msg_data)
                 
-                # Рассылаем всем участникам группы
                 for member_id in groups_db[group_id]['members']:
                     if member_id in active_connections and member_id != user_id:
                         await active_connections[member_id].send_text(json.dumps({
@@ -301,7 +343,136 @@ async def websocket_endpoint(websocket: WebSocket):
                             "timestamp": datetime.now().isoformat()
                         }))
             
-            # Звонки (личные)
+            # Редактирование сообщения
+            elif msg_type == 'edit_message':
+                msg_id = message['message_id']
+                new_content = message['content']
+                # Ищем в личных сообщениях
+                for msg in messages_db:
+                    if msg['id'] == msg_id and msg['from_user_id'] == user_id:
+                        msg['content'] = new_content
+                        if message.get('chat_type') == 'user' and msg['to_user_id'] in active_connections:
+                            await active_connections[msg['to_user_id']].send_text(json.dumps({
+                                "type": "message_edited",
+                                "message_id": msg_id,
+                                "content": new_content
+                            }))
+                        break
+                # Ищем в групповых сообщениях
+                for msg in group_messages_db:
+                    if msg['id'] == msg_id and msg['from_user_id'] == user_id:
+                        msg['content'] = new_content
+                        if message.get('group_id') in groups_db:
+                            for member_id in groups_db[message['group_id']]['members']:
+                                if member_id in active_connections and member_id != user_id:
+                                    await active_connections[member_id].send_text(json.dumps({
+                                        "type": "message_edited",
+                                        "message_id": msg_id,
+                                        "content": new_content
+                                    }))
+                        break
+            
+            # Удаление сообщения
+            elif msg_type == 'delete_message':
+                msg_id = message['message_id']
+                # Удаляем из личных
+                for i, msg in enumerate(messages_db):
+                    if msg['id'] == msg_id and msg['from_user_id'] == user_id:
+                        del messages_db[i]
+                        if msg['to_user_id'] in active_connections:
+                            await active_connections[msg['to_user_id']].send_text(json.dumps({
+                                "type": "message_deleted",
+                                "message_id": msg_id
+                            }))
+                        break
+                # Удаляем из групповых
+                for i, msg in enumerate(group_messages_db):
+                    if msg['id'] == msg_id and msg['from_user_id'] == user_id:
+                        del group_messages_db[i]
+                        if message.get('group_id') in groups_db:
+                            for member_id in groups_db[message['group_id']]['members']:
+                                if member_id in active_connections and member_id != user_id:
+                                    await active_connections[member_id].send_text(json.dumps({
+                                        "type": "message_deleted",
+                                        "message_id": msg_id
+                                    }))
+                        break
+            
+            # Реакция на сообщение
+            elif msg_type == 'reaction':
+                msg_id = message['message_id']
+                reaction = message['reaction']
+                chat_type = message.get('chat_type')
+                chat_id = message.get('chat_id')
+                
+                notify_list = []
+                if chat_type == 'user':
+                    for msg in messages_db:
+                        if msg['id'] == msg_id:
+                            if msg['to_user_id'] in active_connections:
+                                notify_list.append(msg['to_user_id'])
+                            break
+                else:
+                    for msg in group_messages_db:
+                        if msg['id'] == msg_id and chat_id in groups_db:
+                            for member_id in groups_db[chat_id]['members']:
+                                if member_id in active_connections and member_id != user_id:
+                                    notify_list.append(member_id)
+                            break
+                
+                for nid in notify_list:
+                    await active_connections[nid].send_text(json.dumps({
+                        "type": "reaction",
+                        "message_id": msg_id,
+                        "reaction": reaction,
+                        "from": user_id
+                    }))
+            
+            # Пересылка сообщения
+            elif msg_type == 'forward_message':
+                content = message['content']
+                target = message['target']
+                target_id = None
+                target_type = None
+                
+                for uid, data in users_db.items():
+                    if data['username'] == target or data['display_name'] == target:
+                        target_id = uid
+                        target_type = 'user'
+                        break
+                
+                if not target_id:
+                    for gid, data in groups_db.items():
+                        if data['name'] == target:
+                            target_id = gid
+                            target_type = 'group'
+                            break
+                
+                if target_id and target_type == 'user' and target_id in active_connections:
+                    await active_connections[target_id].send_text(json.dumps({
+                        "type": "message",
+                        "id": secrets.token_urlsafe(16),
+                        "from": user_id,
+                        "from_username": display_name,
+                        "content": content,
+                        "type2": "text",
+                        "timestamp": datetime.now().isoformat()
+                    }))
+                elif target_id and target_type == 'group' and target_id in groups_db:
+                    for member_id in groups_db[target_id]['members']:
+                        if member_id in active_connections and member_id != user_id:
+                            await active_connections[member_id].send_text(json.dumps({
+                                "type": "group_message",
+                                "id": secrets.token_urlsafe(16),
+                                "group_id": target_id,
+                                "from": user_id,
+                                "from_username": display_name,
+                                "content": content,
+                                "type2": "text",
+                                "timestamp": datetime.now().isoformat()
+                            }))
+            
+            # Звонки
             elif msg_type in ['call_offer', 'call_answer', 'ice_candidate', 'call_end', 'call_reject']:
                 if 'to_user_id' in message and message['to_user_id'] in active_connections:
                     await active_connections[message['to_user_id']].send_text(json.dumps({
@@ -337,7 +508,8 @@ async def broadcast_users_list():
             'id': gid,
             'name': data['name'],
             'avatar_color': data['avatar_color'],
-            'members_count': len(data['members'])
+            'members_count': len(data['members']),
+            'members': list(data['members'])
         })
     
     status_msg = json.dumps({
@@ -351,11 +523,22 @@ async def broadcast_users_list():
         except:
             pass
 
+# ========== ЗАПУСК ==========
 if __name__ == "__main__":
     import uvicorn
+    
+    # Создаём тестовых пользователей
+    create_test_users()
+    
     port = int(os.environ.get("PORT", 8000))
     print("="*50)
-    print("🚀 ЭХО МЕССЕНДЖЕР С ГРУППАМИ ЗАПУЩЕН!")
+    print("🚀 ЭХО МЕССЕНДЖЕР ЗАПУЩЕН!")
     print(f"📡 http://localhost:{port}")
     print("="*50)
+    print("📋 Тестовые аккаунты:")
+    print("   @admin     / Admin@2024!Secure")
+    print("   @test      / Test@2024!Password")
+    print("   @sergey    / Sergey@2024!EchoMessenger")
+    print("="*50)
+    
     uvicorn.run(app, host="0.0.0.0", port=port)
