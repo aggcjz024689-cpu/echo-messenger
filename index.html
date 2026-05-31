@@ -176,8 +176,8 @@
             body: JSON.stringify({ username, password })
         });
         let data = await res.json();
-        if (data.user_id) alert('Регистрация успешна! Теперь войдите.');
-        else alert('Ошибка: ' + JSON.stringify(data));
+        if (data.user_id) alert('✅ Регистрация успешна! Теперь войдите.');
+        else alert('❌ Ошибка: ' + JSON.stringify(data));
     }
 
     async function doLogin() {
@@ -198,16 +198,25 @@
             document.getElementById('myInfo').innerHTML = `<strong>${myName}</strong> 🟢 Онлайн`;
             connectWebSocket();
             loadUsers();
-        } else alert('Ошибка входа: ' + JSON.stringify(data));
+        } else alert('❌ Ошибка входа: ' + JSON.stringify(data));
     }
 
     function connectWebSocket() {
-        let host = window.location.hostname;
-        let wsUrl = `ws://${host}:8000/ws`;
+        // Автоматически определяем протокол (ws:// или wss://)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}/ws`;
+        
+        console.log('WebSocket URL:', wsUrl);
+        
         ws = new WebSocket(wsUrl);
-        ws.onopen = () => { ws.send(myId); };
+        ws.onopen = () => { 
+            console.log('✅ WebSocket подключен');
+            ws.send(myId); 
+        };
         ws.onmessage = (event) => {
             let data = JSON.parse(event.data);
+            console.log('📩 Получено:', data.type);
             if (data.type === 'message') {
                 addMessage(data.from_username, data.content, data.type2 || 'text', data.from === myId);
             } else if (data.type === 'users_list') {
@@ -223,11 +232,17 @@
             } else if (data.type === 'call_end') {
                 endCall();
             } else if (data.type === 'call_reject') {
-                alert('Звонок отклонён');
+                alert('❌ Звонок отклонён');
                 endCall();
             }
         };
-        ws.onclose = () => setTimeout(() => connectWebSocket(), 3000);
+        ws.onerror = (error) => {
+            console.error('❌ WebSocket ошибка:', error);
+        };
+        ws.onclose = () => {
+            console.log('❌ WebSocket закрыт, переподключение через 3с');
+            setTimeout(() => connectWebSocket(), 3000);
+        };
     }
 
     async function loadUsers() {
@@ -250,7 +265,7 @@
                 </div>`;
             }
         }
-        if (!html) html = '<div style="padding:15px; text-align:center;">Нет других пользователей</div>';
+        if (!html) html = '<div style="padding:15px; text-align:center;">🤷 Нет других пользователей<br><br>Зарегистрируйте второго пользователя в другом браузере</div>';
         container.innerHTML = html;
     }
 
@@ -324,13 +339,12 @@
         input.click();
     }
 
-    // ========== ЗВОНКИ (с проверкой поддержки) ==========
+    // ========== ЗВОНКИ ==========
     async function startCall(isVideo) {
         if (!selectedUserId) { alert('Выберите собеседника'); return; }
         
-        // Проверка поддержки WebRTC
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert('❌ Ваш браузер не поддерживает аудио/видео звонки.\n\nИспользуйте:\n- Google Chrome\n- Microsoft Edge\n- Firefox\n- Яндекс.Браузер');
+            alert('❌ Ваш браузер не поддерживает звонки.\n\nИспользуйте Chrome, Edge или Firefox');
             return;
         }
         
@@ -348,15 +362,15 @@
                         isVideo = false;
                         isVideoCall = false;
                     } catch (err2) {
-                        alert('❌ Нет доступа к микрофону! Проверьте разрешения.');
+                        alert('❌ Нет доступа к микрофону!');
                         return;
                     }
                 } else {
-                    alert('❌ Микрофон не найден или недоступен');
+                    alert('❌ Микрофон не найден');
                     return;
                 }
             } else if (err.name === 'NotAllowedError') {
-                alert('❌ Вы не разрешили доступ. Нажмите на замок в адресной строке и разрешите микрофон.');
+                alert('❌ Разрешите доступ к микрофону/камере\n\nНажмите на замок в адресной строке');
                 return;
             } else {
                 alert('❌ Ошибка: ' + err.message);
