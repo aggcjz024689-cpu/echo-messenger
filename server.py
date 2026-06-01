@@ -4,12 +4,14 @@ import secrets
 import re
 import asyncpg
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import shutil
 
-app = FastAPI(title="ЭХО Мессенджер", version="4.0.0")
+app = FastAPI(title="ЭХО Мессенджер", version="5.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +22,13 @@ app.add_middleware(
 )
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Создаём папку для аватарок
+AVATAR_DIR = "avatars"
+os.makedirs(AVATAR_DIR, exist_ok=True)
+
+# Подключаем статику для аватарок
+app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 
 # ========== ФИЛЬТР МАТА ==========
 BAD_WORDS = ['хуй', 'пизд', 'бля', 'еба', 'залуп', 'мудак', 'гандон', 'пидор', 'сука', 'шлюха', 
@@ -74,6 +83,7 @@ async def init_db():
             password TEXT NOT NULL,
             phone TEXT UNIQUE,
             bio TEXT DEFAULT '',
+            avatar TEXT DEFAULT '',
             avatar_color TEXT DEFAULT '#9147ff',
             is_admin BOOLEAN DEFAULT FALSE,
             is_banned BOOLEAN DEFAULT FALSE,
@@ -112,6 +122,17 @@ async def init_db():
         )
     ''')
     
+    # Добавляем поле avatar если его нет
+    await conn.execute('''
+        DO $$ 
+        BEGIN 
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                           WHERE table_name='users' AND column_name='avatar') THEN
+                ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '';
+            END IF;
+        END $$;
+    ''')
+    
     # Создаём админа
     admin = await conn.fetchrow("SELECT * FROM users WHERE username = '@admin'")
     if not admin:
@@ -129,13 +150,43 @@ async def init_db():
 @app.on_event("startup")
 async def startup():
     await init_db()
-
-# ========== API ==========
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
 
+# ========== АВАТАРКИ ==========
+@app.post("/api/users/{user_id}/avatar")
+async def upload_avatar(user_id: str, file: UploadFile = File(...)):
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(400, "Только изображения")
+    
+    ext = file.filename.split(".")[-1]
+    filename = f"{user_id}.{ext}"
+    filepath = os.path.join(AVATAR_DIR, filename)
+    
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    conn = await asyncpg.connect(DATABASE_URL)
+    await conn.execute("UPDATE users SET avatar = $1 WHERE id = $2", f"/avatars/{filename}", user_id)
+    await conn.close()
+    
+    return {"avatar_url": f"/avatars/{filename}"}
+
+@app.delete("/api/users/{user_id}/avatar")
+async def delete_avatar(user_id: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    user = await conn.fetchrow("SELECT avatar FROM users WHERE id = $1", user_id)
+    if user and user['avatar']:
+        filepath = user['avatar'].lstrip("/")
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        await conn.execute("UPDATE users SET avatar = '' WHERE id = $1", user_id)
+    await conn.close()
+    return {"success": True}
+
+# ========== ПОЛЬЗОВАТЕЛИ ==========
 @app.post("/api/register")
 async def register(user: UserRegister):
     if has_profanity(user.username) or has_profanity(user.display_name):
@@ -173,10 +224,45 @@ async def login(user: UserLogin):
         "user_id": db_user['id'],
         "username": db_user['username'],
         "display_name": db_user['display_name'],
+        "avatar": db_user['avatar'] or '',
         "is_admin": db_user['is_admin'],
         "phone": db_user['phone']
     }
 
+@app.get("/api/users")
+async def get_users():
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch("SELECT id, username, display_name, avatar, is_admin, is_banned FROM users")
+    await conn.close()
+    return [dict(r) for r in rows]
+
+@app.get("/api/users/search")
+async def search_users(q: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch("SELECT id, username, display_name, avatar, is_admin, is_banned FROM users WHERE username ILIKE $1 OR display_name ILIKE $1", f"%{q}%")
+    await conn.close()
+    return [dict(r) for r in rows]
+
+@app.get("/api/users/{user_id}")
+async def get_user(user_id: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    user = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+    await conn.close()
+    if not user:
+        raise HTTPException(404, "User not found")
+    return dict(user)
+
+@app.put("/api/users/{user_id}/profile")
+async def update_profile(user_id: str, profile: UpdateProfile):
+    if has_profanity(profile.display_name):
+        raise HTTPException(400, "Недопустимые символы")
+    
+    conn = await asyncpg.connect(DATABASE_URL)
+    await conn.execute("UPDATE users SET display_name = $1, bio = $2 WHERE id = $3", profile.display_name, profile.bio, user_id)
+    await conn.close()
+    return {"success": True}
+
+# ========== БАН ==========
 @app.post("/api/ban")
 async def ban_user(ban: BanUser):
     conn = await asyncpg.connect(DATABASE_URL)
@@ -202,49 +288,41 @@ async def ban_user(ban: BanUser):
     
     return {"success": True}
 
-@app.get("/api/users")
-async def get_users():
+# ========== ДИАЛОГИ (список чатов) ==========
+@app.get("/api/chats/{user_id}")
+async def get_chats(user_id: str):
     conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT id, username, display_name, phone, is_admin, is_banned FROM users")
+    rows = await conn.fetch('''
+        SELECT DISTINCT 
+            CASE WHEN from_user_id = $1 THEN to_user_id ELSE from_user_id END as other_user_id
+        FROM messages 
+        WHERE from_user_id = $1 OR to_user_id = $1
+    ''', user_id)
     await conn.close()
-    return [dict(r) for r in rows]
-
-@app.get("/api/users/search")
-async def search_users(q: str):
-    conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT id, username, display_name, phone, is_admin, is_banned FROM users WHERE username ILIKE $1 OR display_name ILIKE $1", f"%{q}%")
-    await conn.close()
-    return [dict(r) for r in rows]
-
-@app.get("/api/users/{user_id}")
-async def get_user(user_id: str):
-    conn = await asyncpg.connect(DATABASE_URL)
-    user = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
-    await conn.close()
-    if not user:
-        raise HTTPException(404, "User not found")
-    return {
-        'id': user['id'],
-        'username': user['username'],
-        'display_name': user['display_name'],
-        'phone': user['phone'],
-        'bio': user['bio'],
-        'is_admin': user['is_admin'],
-        'is_banned': user['is_banned'],
-        'is_online': online_users.get(user_id, False),
-        'avatar_color': user['avatar_color']
-    }
-
-@app.put("/api/users/{user_id}/profile")
-async def update_profile(user_id: str, profile: UpdateProfile):
-    if has_profanity(profile.display_name):
-        raise HTTPException(400, "Недопустимые символы")
     
-    conn = await asyncpg.connect(DATABASE_URL)
-    await conn.execute("UPDATE users SET display_name = $1, bio = $2 WHERE id = $3", profile.display_name, profile.bio, user_id)
-    await conn.close()
-    return {"success": True}
+    chats = []
+    for r in rows:
+        if r['other_user_id']:
+            other = await conn.fetchrow("SELECT id, username, display_name, avatar, is_admin, is_banned FROM users WHERE id = $1", r['other_user_id'])
+            if other:
+                chats.append(dict(other))
+    return chats
 
+# ========== СООБЩЕНИЯ ==========
+@app.get("/api/messages/{other_user_id}")
+async def get_messages(other_user_id: str, user_id: str = None):
+    if not user_id:
+        return []
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch('''
+        SELECT * FROM messages 
+        WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
+        ORDER BY created_at ASC LIMIT 100
+    ''', user_id, other_user_id)
+    await conn.close()
+    return [dict(r) for r in rows]
+
+# ========== ГРУППЫ ==========
 @app.post("/api/groups")
 async def create_group(group: CreateGroup):
     group_id = secrets.token_urlsafe(16)
@@ -264,25 +342,11 @@ async def get_groups():
     return [dict(r) for r in rows]
 
 @app.get("/api/groups/{group_id}/messages")
-async def get_group_messages(group_id: str, limit: int = 50):
+async def get_group_messages(group_id: str, limit: int = 100):
     conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT * FROM messages WHERE group_id = $1 ORDER BY created_at DESC LIMIT $2", group_id, limit)
+    rows = await conn.fetch("SELECT * FROM messages WHERE group_id = $1 ORDER BY created_at ASC LIMIT $2", group_id, limit)
     await conn.close()
-    return [dict(r) for r in reversed(rows)]
-
-@app.get("/api/messages/{other_user_id}")
-async def get_messages(other_user_id: str, user_id: str = None):
-    if not user_id:
-        return []
-    conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch('''
-        SELECT * FROM messages 
-        WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
-        ORDER BY created_at DESC LIMIT 50
-    ''', user_id, other_user_id)
-    await conn.close()
-    return [dict(r) for r in reversed(rows)]
-
+    return [dict(r) for r in rows]
 # ========== WEBSOCKET ==========
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -322,6 +386,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "id": msg_id,
                         "from": user_id,
                         "from_username": user['display_name'],
+                        "from_avatar": user['avatar'],
                         "content": message['content'],
                         "type2": msg_type,
                         "timestamp": datetime.now().isoformat()
@@ -334,9 +399,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     INSERT INTO messages (id, from_user_id, group_id, content, type, created_at)
                     VALUES ($1, $2, $3, $4, $5, $6)
                 ''', msg_id, user_id, message['group_id'], message['content'], msg_type, datetime.now())
-                await conn_msg.close()
                 
                 members = await conn_msg.fetch("SELECT user_id FROM group_members WHERE group_id = $1", message['group_id'])
+                await conn_msg.close()
+                
                 for member in members:
                     if member['user_id'] in active_connections and member['user_id'] != user_id:
                         await active_connections[member['user_id']].send_text(json.dumps({
@@ -345,6 +411,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "group_id": message['group_id'],
                             "from": user_id,
                             "from_username": user['display_name'],
+                            "from_avatar": user['avatar'],
                             "content": message['content'],
                             "type2": msg_type,
                             "timestamp": datetime.now().isoformat()
@@ -376,7 +443,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def broadcast_users_list():
     conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT id, username, display_name, is_admin, is_banned FROM users")
+    rows = await conn.fetch("SELECT id, username, display_name, avatar, is_admin, is_banned FROM users")
     await conn.close()
     
     users_list = []
@@ -385,12 +452,12 @@ async def broadcast_users_list():
             'id': r['id'],
             'username': r['username'],
             'display_name': r['display_name'],
+            'avatar': r['avatar'],
             'is_online': online_users.get(r['id'], False),
             'is_admin': r['is_admin'],
             'is_banned': r['is_banned']
         })
     
-    # Группы для отображения
     conn2 = await asyncpg.connect(DATABASE_URL)
     groups_rows = await conn2.fetch("SELECT id, name FROM groups")
     await conn2.close()
