@@ -23,7 +23,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # ========== ФИЛЬТР МАТА ==========
 BAD_WORDS = ['хуй', 'пизд', 'бля', 'еба', 'залуп', 'мудак', 'гандон', 'пидор', 'сука', 'шлюха', 
-             'хуе', 'хуи', 'ебан', 'ебот', 'сволоч', 'тварь', 'ублюд', 'дроч', 'хер', 'пох', 'нах']
+             'хуе', 'хуи', 'ебан', 'ебот', 'сволоч', 'тварь', 'ублюд', 'дроч', 'хер', 'пох', 'нах', 
+             'редиск', 'даун', 'лох']
 BAD_PATTERN = re.compile('|'.join(re.escape(w) for w in BAD_WORDS), re.IGNORECASE)
 
 def has_profanity(text: str) -> bool:
@@ -48,11 +49,23 @@ class UpdateProfile(BaseModel):
     display_name: str
     bio: str
 
-# ========== БАЗА ДАННЫХ ==========
+class CreateGroup(BaseModel):
+    name: str
+    members: list
+
+# ========== ГЛОБАЛЬНЫЕ ХРАНИЛИЩА ==========
+active_connections = {}
+online_users = {}
+
+def get_avatar_color(name: str) -> str:
+    colors = ['#9147ff', '#ff6b6b', '#4ade80', '#fbbf24', '#60a5fa', '#f472b6', '#34d399', '#a78bfa']
+    index = ord(name[0]) % len(colors) if name else 0
+    return colors[index]
+
+# ========== ИНИЦИАЛИЗАЦИЯ БД ==========
 async def init_db():
     conn = await asyncpg.connect(DATABASE_URL)
     
-    # Таблица пользователей
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -68,7 +81,6 @@ async def init_db():
         )
     ''')
     
-    # Таблица сообщений
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id TEXT PRIMARY KEY,
@@ -81,7 +93,6 @@ async def init_db():
         )
     ''')
     
-    # Таблица групп
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS groups (
             id TEXT PRIMARY KEY,
@@ -92,7 +103,6 @@ async def init_db():
         )
     ''')
     
-    # Таблица участников групп
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS group_members (
             group_id TEXT,
@@ -102,7 +112,7 @@ async def init_db():
         )
     ''')
     
-    # Создаём админа если нет
+    # Создаём админа
     admin = await conn.fetchrow("SELECT * FROM users WHERE username = '@admin'")
     if not admin:
         admin_id = secrets.token_urlsafe(16)
@@ -111,45 +121,29 @@ async def init_db():
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ''', admin_id, '@admin', 'Администратор', 'Admin2024Secure', '+79990000000', 
            'Главный администратор', '#ff4444', True, datetime.now())
-        print("✅ Создан администратор: @admin / Admin2024Secure")
+        print("✅ Админ создан: @admin / Admin2024Secure")
     
     await conn.close()
-    print("✅ База данных инициализирована")
+    print("✅ База данных готова")
 
 @app.on_event("startup")
 async def startup():
     await init_db()
 
-# ========== ХРАНИЛИЩА ДЛЯ ОНЛАЙН И WEBSOCKET ==========
-active_connections = {}
-online_users = {}
-
-def get_avatar_color(name: str) -> str:
-    colors = ['#9147ff', '#ff6b6b', '#4ade80', '#fbbf24', '#60a5fa', '#f472b6', '#34d399', '#a78bfa']
-    index = ord(name[0]) % len(colors) if name else 0
-    return colors[index]
-
-# ========== API ЭНДПОИНТЫ ==========
+# ========== API ==========
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
-    try:
-        with open("index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except:
-        return "<h1>index.html not found</h1>"
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
 @app.post("/api/register")
 async def register(user: UserRegister):
-    # Проверка на мат
     if has_profanity(user.username) or has_profanity(user.display_name):
-        raise HTTPException(400, "Недопустимые символы в имени")
+        raise HTTPException(400, "Недопустимые символы")
     
-    # Обработка username
     clean_username = user.username if user.username.startswith('@') else f"@{user.username}"
     
     conn = await asyncpg.connect(DATABASE_URL)
-    
-    # Проверка уникальности
     existing = await conn.fetchrow("SELECT * FROM users WHERE username = $1 OR phone = $2", clean_username, user.phone)
     if existing:
         await conn.close()
@@ -171,9 +165,9 @@ async def login(user: UserLogin):
     await conn.close()
     
     if not db_user or db_user['password'] != user.password:
-        raise HTTPException(401, "Неверные имя пользователя или пароль")
+        raise HTTPException(401, "Неверные данные")
     if db_user['is_banned']:
-        raise HTTPException(403, "Ваш аккаунт забанен")
+        raise HTTPException(403, "Вы забанены")
     
     return {
         "user_id": db_user['id'],
@@ -186,14 +180,11 @@ async def login(user: UserLogin):
 @app.post("/api/ban")
 async def ban_user(ban: BanUser):
     conn = await asyncpg.connect(DATABASE_URL)
-    
-    # Проверка прав админа
     admin = await conn.fetchrow("SELECT * FROM users WHERE id = $1", ban.admin_id)
     if not admin or not admin['is_admin']:
         await conn.close()
-        raise HTTPException(403, "Нет прав для бана")
+        raise HTTPException(403, "Нет прав")
     
-    # Поиск цели
     target = await conn.fetchrow("SELECT * FROM users WHERE username = $1", ban.target_username)
     if not target:
         await conn.close()
@@ -201,34 +192,29 @@ async def ban_user(ban: BanUser):
     
     if target['is_admin']:
         await conn.close()
-        raise HTTPException(403, "Нельзя забанить администратора")
+        raise HTTPException(403, "Нельзя забанить админа")
     
     await conn.execute("UPDATE users SET is_banned = TRUE WHERE id = $1", target['id'])
     await conn.close()
     
-    # Отключаем WebSocket если пользователь онлайн
     if target['id'] in active_connections:
         await active_connections[target['id']].close(code=1008, reason="Вы забанены")
     
-    return {"success": True, "message": f"Пользователь {ban.target_username} забанен"}
+    return {"success": True}
 
 @app.get("/api/users")
 async def get_users():
     conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT id, username, display_name, phone, is_admin, is_banned, is_admin FROM users")
+    rows = await conn.fetch("SELECT id, username, display_name, phone, is_admin, is_banned FROM users")
     await conn.close()
-    result = []
-    for r in rows:
-        result.append({
-            'id': r['id'],
-            'username': r['username'],
-            'display_name': r['display_name'],
-            'phone': r['phone'],
-            'is_admin': r['is_admin'],
-            'is_banned': r['is_banned'],
-            'is_online': online_users.get(r['id'], False)
-        })
-    return result
+    return [dict(r) for r in rows]
+
+@app.get("/api/users/search")
+async def search_users(q: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch("SELECT id, username, display_name, phone, is_admin, is_banned FROM users WHERE username ILIKE $1 OR display_name ILIKE $1", f"%{q}%")
+    await conn.close()
+    return [dict(r) for r in rows]
 
 @app.get("/api/users/{user_id}")
 async def get_user(user_id: str):
@@ -246,20 +232,43 @@ async def get_user(user_id: str):
         'is_admin': user['is_admin'],
         'is_banned': user['is_banned'],
         'is_online': online_users.get(user_id, False),
-        'avatar_color': user['avatar_color'],
-        'created_at': user['created_at'].isoformat() if user['created_at'] else None
+        'avatar_color': user['avatar_color']
     }
 
 @app.put("/api/users/{user_id}/profile")
 async def update_profile(user_id: str, profile: UpdateProfile):
     if has_profanity(profile.display_name):
-        raise HTTPException(400, "Недопустимые символы в имени")
+        raise HTTPException(400, "Недопустимые символы")
     
     conn = await asyncpg.connect(DATABASE_URL)
-    await conn.execute("UPDATE users SET display_name = $1, bio = $2 WHERE id = $3", 
-                       profile.display_name, profile.bio, user_id)
+    await conn.execute("UPDATE users SET display_name = $1, bio = $2 WHERE id = $3", profile.display_name, profile.bio, user_id)
     await conn.close()
-    return {"success": True, "display_name": profile.display_name, "bio": profile.bio}
+    return {"success": True}
+
+@app.post("/api/groups")
+async def create_group(group: CreateGroup):
+    group_id = secrets.token_urlsafe(16)
+    conn = await asyncpg.connect(DATABASE_URL)
+    await conn.execute("INSERT INTO groups (id, name, avatar_color, created_by) VALUES ($1, $2, $3, $4)", 
+                       group_id, group.name, get_avatar_color(group.name), group.members[0])
+    for member in group.members:
+        await conn.execute("INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)", group_id, member)
+    await conn.close()
+    return {"group_id": group_id, "name": group.name}
+
+@app.get("/api/groups")
+async def get_groups():
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch("SELECT g.*, COUNT(gm.user_id) as members_count FROM groups g LEFT JOIN group_members gm ON g.id = gm.group_id GROUP BY g.id")
+    await conn.close()
+    return [dict(r) for r in rows]
+
+@app.get("/api/groups/{group_id}/messages")
+async def get_group_messages(group_id: str, limit: int = 50):
+    conn = await asyncpg.connect(DATABASE_URL)
+    rows = await conn.fetch("SELECT * FROM messages WHERE group_id = $1 ORDER BY created_at DESC LIMIT $2", group_id, limit)
+    await conn.close()
+    return [dict(r) for r in reversed(rows)]
 
 @app.get("/api/messages/{other_user_id}")
 async def get_messages(other_user_id: str, user_id: str = None):
@@ -274,7 +283,7 @@ async def get_messages(other_user_id: str, user_id: str = None):
     await conn.close()
     return [dict(r) for r in reversed(rows)]
 
-# ========== WEB SOCKET ==========
+# ========== WEBSOCKET ==========
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -290,8 +299,6 @@ async def websocket_endpoint(websocket: WebSocket):
     
     active_connections[user_id] = websocket
     online_users[user_id] = True
-    
-    # Рассылаем обновлённый список пользователей
     await broadcast_users_list()
     
     try:
@@ -300,17 +307,15 @@ async def websocket_endpoint(websocket: WebSocket):
             message = json.loads(data)
             msg_type = message.get('type', 'text')
             
-            if msg_type == 'text':
-                # Сохраняем сообщение в БД
+            if msg_type in ['text', 'image', 'video', 'audio'] and 'to_user_id' in message:
                 msg_id = secrets.token_urlsafe(16)
                 conn_msg = await asyncpg.connect(DATABASE_URL)
                 await conn_msg.execute('''
                     INSERT INTO messages (id, from_user_id, to_user_id, content, type, created_at)
                     VALUES ($1, $2, $3, $4, $5, $6)
-                ''', msg_id, user_id, message['to_user_id'], message['content'], 'text', datetime.now())
+                ''', msg_id, user_id, message['to_user_id'], message['content'], msg_type, datetime.now())
                 await conn_msg.close()
                 
-                # Отправляем получателю
                 if message['to_user_id'] in active_connections:
                     await active_connections[message['to_user_id']].send_text(json.dumps({
                         "type": "message",
@@ -318,17 +323,49 @@ async def websocket_endpoint(websocket: WebSocket):
                         "from": user_id,
                         "from_username": user['display_name'],
                         "content": message['content'],
-                        "type2": "text",
+                        "type2": msg_type,
                         "timestamp": datetime.now().isoformat()
                     }))
             
-            elif msg_type == 'typing':
+            elif msg_type in ['text', 'image', 'video', 'audio'] and 'group_id' in message:
+                msg_id = secrets.token_urlsafe(16)
+                conn_msg = await asyncpg.connect(DATABASE_URL)
+                await conn_msg.execute('''
+                    INSERT INTO messages (id, from_user_id, group_id, content, type, created_at)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                ''', msg_id, user_id, message['group_id'], message['content'], msg_type, datetime.now())
+                await conn_msg.close()
+                
+                members = await conn_msg.fetch("SELECT user_id FROM group_members WHERE group_id = $1", message['group_id'])
+                for member in members:
+                    if member['user_id'] in active_connections and member['user_id'] != user_id:
+                        await active_connections[member['user_id']].send_text(json.dumps({
+                            "type": "group_message",
+                            "id": msg_id,
+                            "group_id": message['group_id'],
+                            "from": user_id,
+                            "from_username": user['display_name'],
+                            "content": message['content'],
+                            "type2": msg_type,
+                            "timestamp": datetime.now().isoformat()
+                        }))
+            
+            elif msg_type == 'typing' and 'to_user_id' in message:
                 if message['to_user_id'] in active_connections:
                     await active_connections[message['to_user_id']].send_text(json.dumps({
                         "type": "typing",
                         "from": user_id
                     }))
             
+            elif msg_type in ['call_offer', 'call_answer', 'ice_candidate', 'call_end', 'call_reject']:
+                if 'to_user_id' in message and message['to_user_id'] in active_connections:
+                    await active_connections[message['to_user_id']].send_text(json.dumps({
+                        "type": msg_type,
+                        "from": user_id,
+                        "from_username": user['display_name'],
+                        **{k: v for k, v in message.items() if k not in ['type', 'to_user_id']}
+                    }))
+                    
     except WebSocketDisconnect:
         pass
     finally:
@@ -353,7 +390,14 @@ async def broadcast_users_list():
             'is_banned': r['is_banned']
         })
     
-    status_msg = json.dumps({"type": "users_list", "users": users_list})
+    # Группы для отображения
+    conn2 = await asyncpg.connect(DATABASE_URL)
+    groups_rows = await conn2.fetch("SELECT id, name FROM groups")
+    await conn2.close()
+    
+    groups_list = [dict(r) for r in groups_rows]
+    
+    status_msg = json.dumps({"type": "users_list", "users": users_list, "groups": groups_list})
     for conn_ws in active_connections.values():
         try:
             await conn_ws.send_text(status_msg)
@@ -367,6 +411,6 @@ if __name__ == "__main__":
     print("🚀 ЭХО МЕССЕНДЖЕР ЗАПУЩЕН!")
     print(f"📡 http://localhost:{port}")
     print("=" * 50)
-    print("👑 Администратор: @admin / Admin2024Secure")
+    print("👑 Админ: @admin / Admin2024Secure")
     print("=" * 50)
     uvicorn.run(app, host="0.0.0.0", port=port)
