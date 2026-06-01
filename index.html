@@ -150,10 +150,10 @@
         .message-time { font-size: 10px; margin-top: 4px; text-align: right; }
         .message-audio { max-width: 200px; }
         
-        .message-actions { position: absolute; right: 0; top: -25px; background: #2a2a2e; border-radius: 8px; display: none; gap: 8px; padding: 4px 8px; z-index: 10; }
+        .message-actions { position: absolute; right: 0; top: -30px; background: #2a2a2e; border-radius: 8px; display: none; gap: 8px; padding: 4px 8px; z-index: 10; white-space: nowrap; }
         body.light .message-actions { background: #e4e6eb; }
         .message:hover .message-actions { display: flex; }
-        .message-actions button { background: none; border: none; color: white; cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px; }
+        .message-actions button { background: none; border: none; color: white; cursor: pointer; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
         body.light .message-actions button { color: #050505; }
         .message-actions button:hover { background: #9147ff; color: white; }
         
@@ -190,12 +190,16 @@
         .saved-messages-list { max-height: 300px; overflow-y: auto; }
         .saved-message-item { padding: 10px; border-bottom: 1px solid #2a2a2e; cursor: pointer; }
         
+        .delete-chat-btn { background: none; border: none; color: #ff4444; cursor: pointer; font-size: 14px; margin-left: 10px; }
+        
         .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
         @media (max-width: 768px) {
             .message { max-width: 85%; }
             .users-panel { width: 280px; }
             .top-bar { gap: 4px; }
             .call-btn, .create-group-btn, .theme-btn, .export-btn, .profile-btn { width: 32px; height: 32px; font-size: 14px; }
+            .message-actions { top: -25px; }
+            .message-actions button { font-size: 10px; padding: 2px 4px; }
         }
     </style>
 </head>
@@ -564,7 +568,6 @@
         localStorage.removeItem('echo_is_admin');
         location.reload();
     }
-    
     // ========== WEBSOCKET ==========
     function connectWebSocket() {
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -631,10 +634,8 @@
         const res = await fetch(`/api/chats/${myId}`);
         chats = await res.json();
         renderChats();
-        // Также загружаем группы
         const resGroups = await fetch('/api/groups');
         const groupsList = await resGroups.json();
-        // Группы показываем отдельно? Пока оставим в chats
         groupsList.forEach(g => { if (!chats.find(c => c.id === g.id)) chats.push({ ...g, is_group: true }); });
         renderChats();
     }
@@ -653,7 +654,10 @@
                     ${avatarHtml}
                     <div><div class="user-name">${escapeHtml(name)}</div></div>
                 </div>
-                ${unread}
+                <div style="display:flex; align-items:center; gap:5px;">
+                    ${unread}
+                    <button class="delete-chat-btn" onclick="event.stopPropagation(); deleteChat('${chat.id}')">🗑</button>
+                </div>
             </div>`;
         }
         if (!html) html = '<div style="padding:15px; text-align:center;">🤷 Нет диалогов</div>';
@@ -727,13 +731,40 @@
                     ${!isMine ? `<button onclick="replyToMessage('${msgId}', '${escapeHtml(content)}')">↩️</button>` : ''}
                     <button onclick="saveMessage('${msgId}', '${escapeHtml(content)}')">⭐</button>
                     <button onclick="pinMessage('${msgId}', '${escapeHtml(content)}')">📌</button>
-                    ${isMine ? `<button onclick="deleteMessage('${msgId}')">🗑</button>` : ''}
+                    ${isMine ? `<button onclick="deleteForEveryone('${msgId}')">💣 Удалить для всех</button>` : ''}
+                    ${isMine ? `<button onclick="deleteForMe('${msgId}')">🗑 Скрыть у себя</button>` : ''}
+                    ${!isMine ? `<button onclick="deleteOthersForMe('${msgId}', '${fromId}')">🙈 Скрыть чужое</button>` : ''}
                     ${myIsAdmin && !isMine ? `<button onclick="banUser('${users[fromId]?.username || ''}')">🚫 Забанить</button>` : ''}
                 </div>
             </div>
         `;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
+    }
+    
+    // ========== УДАЛЕНИЕ СООБЩЕНИЙ ==========
+    async function deleteForMe(messageId) {
+        await fetch(`/api/messages/${messageId}/for-me?user_id=${myId}`, { method: 'DELETE' });
+        document.querySelector(`.message[data-id='${messageId}']`)?.remove();
+    }
+    
+    async function deleteForEveryone(messageId) {
+        if (!confirm('Удалить сообщение у всех?')) return;
+        await fetch(`/api/messages/${messageId}/for-everyone?user_id=${myId}`, { method: 'DELETE' });
+        document.querySelector(`.message[data-id='${messageId}']`)?.remove();
+    }
+    
+    async function deleteOthersForMe(messageId, fromId) {
+        if (fromId !== myId) {
+            await fetch(`/api/messages/${messageId}/for-me?user_id=${myId}`, { method: 'DELETE' });
+            document.querySelector(`.message[data-id='${messageId}']`)?.remove();
+        }
+    }
+    
+    async function deleteChat(chatId) {
+        if (!confirm('Удалить всю переписку? Это действие нельзя отменить.')) return;
+        await fetch(`/api/chats/${chatId}?user_id=${myId}`, { method: 'DELETE' });
+        location.reload();
     }
     
     async function banUser(username) {
@@ -746,7 +777,7 @@
         if (res.ok) alert(`✅ Пользователь ${username} забанен`);
         else alert('❌ Ошибка бана');
     }
-    
+    // ========== ОТПРАВКА СООБЩЕНИЙ ==========
     function sendMsg() {
         let input = document.getElementById('messageInput');
         let text = input.value.trim();
@@ -781,12 +812,6 @@
         }
     }
     
-    function deleteMessage(id) {
-        if (confirm('Удалить сообщение?')) {
-            document.querySelector(`.message[data-id='${id}']`)?.remove();
-        }
-    }
-    
     // ========== ПОИСК ПОЛЬЗОВАТЕЛЕЙ ==========
     document.getElementById('searchInput').addEventListener('input', async (e) => {
         let q = e.target.value.trim();
@@ -804,7 +829,6 @@
     });
     
     async function startChatWithUser(userId, displayName) {
-        // Проверяем, есть ли уже диалог
         let existing = chats.find(c => c.id === userId);
         if (!existing) {
             chats.unshift({ id: userId, display_name: displayName, username: users[userId]?.username });
@@ -962,9 +986,10 @@
             <button onclick="downloadImage('${url}')" style="margin-top:10px; padding:10px 20px; border-radius:30px; background:#2a2a2e; color:white; border:none;">📥 Скачать</button>`;
         document.body.appendChild(modal);
     }
+    
     function downloadImage(url) { let a = document.createElement('a'); a.href = url; a.download = 'echo_image.jpg'; a.click(); }
     
-    // ========== ЗВОНКИ ==========
+    // ========== ЗВОНКИ (заглушка) ==========
     async function startCall(isVideo) { alert('Звонки работают через WebRTC. Требуется HTTPS.'); }
     async function handleCallOffer(from, fromName, offer) { }
     function handleCallAnswer(answer) { }
@@ -978,6 +1003,7 @@
     function closeUsers() { document.getElementById('usersPanel').classList.remove('open'); document.getElementById('overlay').style.display = 'none'; }
     function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[m]) || ''; }
     
+    // ========== ЗАПУСК ==========
     initEmojiPicker();
     checkAutoLogin();
     document.addEventListener('keypress', e => { if (e.target.id === 'messageInput' && e.key === 'Enter') sendMsg(); });

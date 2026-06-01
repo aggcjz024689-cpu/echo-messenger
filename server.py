@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import shutil
 
-app = FastAPI(title="ЭХО Мессенджер", version="5.0.0")
+app = FastAPI(title="ЭХО Мессенджер", version="6.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,17 +23,16 @@ app.add_middleware(
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Создаём папку для аватарок
+# Папка для аватарок
 AVATAR_DIR = "avatars"
 os.makedirs(AVATAR_DIR, exist_ok=True)
 
-# Подключаем статику для аватарок
+# Подключаем статику
 app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 
 # ========== ФИЛЬТР МАТА ==========
 BAD_WORDS = ['хуй', 'пизд', 'бля', 'еба', 'залуп', 'мудак', 'гандон', 'пидор', 'сука', 'шлюха', 
-             'хуе', 'хуи', 'ебан', 'ебот', 'сволоч', 'тварь', 'ублюд', 'дроч', 'хер', 'пох', 'нах', 
-             'редиск', 'даун', 'лох']
+             'хуе', 'хуи', 'ебан', 'ебот', 'сволоч', 'тварь', 'ублюд', 'дроч', 'хер', 'пох', 'нах']
 BAD_PATTERN = re.compile('|'.join(re.escape(w) for w in BAD_WORDS), re.IGNORECASE)
 
 def has_profanity(text: str) -> bool:
@@ -119,6 +118,15 @@ async def init_db():
             user_id TEXT,
             joined_at TIMESTAMP DEFAULT NOW(),
             PRIMARY KEY (group_id, user_id)
+        )
+    ''')
+    
+    # Таблица для скрытых сообщений (для себя)
+    await conn.execute('''
+        CREATE TABLE IF NOT EXISTS hidden_messages (
+            message_id TEXT,
+            user_id TEXT,
+            PRIMARY KEY (message_id, user_id)
         )
     ''')
     
@@ -261,7 +269,6 @@ async def update_profile(user_id: str, profile: UpdateProfile):
     await conn.execute("UPDATE users SET display_name = $1, bio = $2 WHERE id = $3", profile.display_name, profile.bio, user_id)
     await conn.close()
     return {"success": True}
-
 # ========== БАН ==========
 @app.post("/api/ban")
 async def ban_user(ban: BanUser):
@@ -288,7 +295,7 @@ async def ban_user(ban: BanUser):
     
     return {"success": True}
 
-# ========== ДИАЛОГИ (список чатов) ==========
+# ========== ДИАЛОГИ ==========
 @app.get("/api/chats/{user_id}")
 async def get_chats(user_id: str):
     conn = await asyncpg.connect(DATABASE_URL)
@@ -316,11 +323,38 @@ async def get_messages(other_user_id: str, user_id: str = None):
     conn = await asyncpg.connect(DATABASE_URL)
     rows = await conn.fetch('''
         SELECT * FROM messages 
-        WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
+        WHERE ((from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1))
+        AND id NOT IN (SELECT message_id FROM hidden_messages WHERE user_id = $1)
         ORDER BY created_at ASC LIMIT 100
     ''', user_id, other_user_id)
     await conn.close()
     return [dict(r) for r in rows]
+
+@app.delete("/api/messages/{message_id}/for-me")
+async def delete_message_for_me(message_id: str, user_id: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    await conn.execute("INSERT INTO hidden_messages (message_id, user_id) VALUES ($1, $2)", message_id, user_id)
+    await conn.close()
+    return {"success": True}
+
+@app.delete("/api/messages/{message_id}/for-everyone")
+async def delete_message_for_everyone(message_id: str, user_id: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    msg = await conn.fetchrow("SELECT from_user_id FROM messages WHERE id = $1", message_id)
+    if msg and msg['from_user_id'] == user_id:
+        await conn.execute("DELETE FROM messages WHERE id = $1", message_id)
+    await conn.close()
+    return {"success": True}
+
+@app.delete("/api/chats/{chat_id}")
+async def delete_chat(chat_id: str, user_id: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    await conn.execute("""
+        DELETE FROM messages 
+        WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
+    """, user_id, chat_id)
+    await conn.close()
+    return {"success": True}
 
 # ========== ГРУППЫ ==========
 @app.post("/api/groups")
