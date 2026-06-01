@@ -225,6 +225,7 @@
         <strong>💬 ЭХО</strong>
         <div style="margin-top: 10px;" id="myInfo"></div>
         <button onclick="showQRModal()" style="margin-top:10px; background:#9147ff; border:none; padding:5px 10px; border-radius:8px; cursor:pointer;">📱 QR-вход</button>
+        <button onclick="logout()" style="margin-top:5px; background:#ff4444; border:none; padding:5px 10px; border-radius:8px; cursor:pointer; width:100%;">🚪 Выйти</button>
     </div>
     <div class="section-title">📁 ГРУППЫ</div>
     <div id="groupsList"></div>
@@ -287,7 +288,7 @@
     let myDisplayName = null;
     let myIsAdmin = false;
     let selectedChatId = null;
-    let selectedChatType = null; // 'user' or 'group'
+    let selectedChatType = null;
     let users = {};
     let groups = {};
     let unreadCounts = {};
@@ -385,6 +386,12 @@
             myId = data.user_id;
             myDisplayName = data.display_name;
             myIsAdmin = data.is_admin;
+            
+            // Сохраняем данные для автовхода
+            localStorage.setItem('echo_user_id', data.user_id);
+            localStorage.setItem('echo_display_name', data.display_name);
+            localStorage.setItem('echo_is_admin', data.is_admin);
+            
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('chatScreen').style.display = 'flex';
             document.getElementById('myInfo').innerHTML = `<strong>${myDisplayName}</strong> 🟢 ${myIsAdmin ? '👑 Админ' : ''}`;
@@ -394,6 +401,36 @@
             loadTheme();
             if (Notification.permission === 'default') Notification.requestPermission();
         } else alert('❌ Ошибка входа: ' + (data.detail || 'Неверные данные'));
+    }
+    
+    // ========== АВТОВХОД ==========
+    function checkAutoLogin() {
+        const savedId = localStorage.getItem('echo_user_id');
+        const savedName = localStorage.getItem('echo_display_name');
+        const savedAdmin = localStorage.getItem('echo_is_admin');
+        
+        if (savedId && savedName) {
+            myId = savedId;
+            myDisplayName = savedName;
+            myIsAdmin = savedAdmin === 'true';
+            
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('chatScreen').style.display = 'flex';
+            document.getElementById('myInfo').innerHTML = `<strong>${myDisplayName}</strong> 🟢 ${myIsAdmin ? '👑 Админ' : ''}`;
+            document.getElementById('profileDisplayName').value = myDisplayName;
+            
+            connectWebSocket();
+            loadUsersAndGroups();
+            loadTheme();
+            if (Notification.permission === 'default') Notification.requestPermission();
+        }
+    }
+    
+    function logout() {
+        localStorage.removeItem('echo_user_id');
+        localStorage.removeItem('echo_display_name');
+        localStorage.removeItem('echo_is_admin');
+        location.reload();
     }
     
     // ========== WEBSOCKET ==========
@@ -696,6 +733,7 @@
         });
         if (res.ok) {
             myDisplayName = newName;
+            localStorage.setItem('echo_display_name', newName);
             document.getElementById('myInfo').innerHTML = `<strong>${myDisplayName}</strong> 🟢 ${myIsAdmin ? '👑 Админ' : ''}`;
             closeModal('profileModal');
         }
@@ -859,7 +897,9 @@
     function closeUsers() { document.getElementById('usersPanel').classList.remove('open'); document.getElementById('overlay').style.display = 'none'; }
     function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[m]) || ''; }
     
+    // Запуск
     initEmojiPicker();
+    checkAutoLogin();
     document.addEventListener('keypress', e => { if (e.target.id === 'messageInput' && e.key === 'Enter') sendMsg(); });
 </script>
 </body>
