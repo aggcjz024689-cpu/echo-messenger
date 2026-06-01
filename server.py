@@ -403,6 +403,15 @@ async def broadcast_users_list():
             await conn_ws.send_text(status_msg)
         except:
             pass
+@app.get("/api/debug/user/{username}")
+async def debug_user(username: str):
+    import asyncpg
+    conn = await asyncpg.connect(DATABASE_URL)
+    user = await conn.fetchrow("SELECT username, display_name, password FROM users WHERE username = $1", username)
+    await conn.close()
+    if user:
+        return {"username": user['username'], "display_name": user['display_name'], "password": user['password']}
+    return {"error": "User not found"}
 
 if __name__ == "__main__":
     import uvicorn
