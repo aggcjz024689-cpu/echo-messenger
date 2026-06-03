@@ -965,7 +965,6 @@
                 if (selectedChatId === data.from && selectedChatType === 'user') addMessageToChat(data.id, data.from, data.from_username, data.from_avatar, data.content, false, data.type2, data.timestamp);
                 else incrementUnread(data.from, data.from_username);
                 showNotification(data.from_username, data.content);
-                // Добавляем собеседника в диалоги, если его там нет
                 if (!chats.find(c => c.id === data.from)) {
                     chats.unshift({ id: data.from, display_name: data.from_username, username: data.from_username, avatar: data.from_avatar });
                     localStorage.setItem('echo_chats', JSON.stringify(chats));
@@ -997,13 +996,11 @@
     document.getElementById('messageInput')?.addEventListener('input', () => { if (typingTimeout) clearTimeout(typingTimeout); sendTyping(); typingTimeout = setTimeout(() => {}, 1000); });
 
     async function loadChatsAndGroups() {
-        // Загружаем сохранённые диалоги из localStorage
         const savedChats = localStorage.getItem('echo_chats');
         if (savedChats) {
-            chats = JSON.parse(savedChats);
+            try { chats = JSON.parse(savedChats); } catch(e) { chats = []; }
         }
         
-        // Обновляем данные с сервера (аватарки, статусы)
         const resChats = await fetch(`/api/chats/${myId}`);
         const serverChats = await resChats.json();
         serverChats.forEach(sc => {
