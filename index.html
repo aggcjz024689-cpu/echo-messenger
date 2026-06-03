@@ -65,12 +65,15 @@
 
         .sidebar {
             width: 320px;
+            min-width: 320px;
+            max-width: 320px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
+            height: 100vh;
+            overflow-y: auto;
             transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             z-index: 100;
-            position: relative;
         }
 
         @media (max-width: 768px) {
@@ -78,10 +81,8 @@
                 position: fixed;
                 left: 0;
                 top: 0;
-                height: 100%;
                 transform: translateX(-100%);
                 z-index: 1000;
-                width: 280px;
             }
             .sidebar.open { transform: translateX(0); }
             .chat-area { width: 100%; }
@@ -121,6 +122,9 @@
         .sidebar-header {
             padding: 20px;
             border-bottom: 1px solid #2a2a2e;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .user-info {
@@ -128,7 +132,6 @@
             align-items: center;
             gap: 12px;
             cursor: pointer;
-            margin-bottom: 16px;
         }
 
         .avatar {
@@ -143,11 +146,24 @@
             font-weight: bold;
             font-size: 20px;
             color: white;
+            flex-shrink: 0;
         }
 
         .user-details { flex: 1; }
         .user-name { font-weight: 600; font-size: 16px; }
         .user-username { font-size: 13px; color: #888; }
+
+        .change-avatar-btn {
+            width: 100%;
+            background: #2a2a2e;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            font-size: 13px;
+        }
+        body.light .change-avatar-btn { background: #e4e6eb; color: #050505; }
 
         .search-container {
             position: relative;
@@ -266,6 +282,7 @@
 
         .chat-area {
             flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -608,6 +625,7 @@
                 <div class="user-username" id="myUsername">@username</div>
             </div>
         </div>
+        <button class="change-avatar-btn" onclick="openAvatarModal()">📷 Сменить аватар</button>
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Поиск..." class="search-input" value="">
             <div id="searchResults" class="search-results"></div>
@@ -622,16 +640,13 @@
     <div class="chats-list" id="groupsList"></div>
 </div>
 
-<div class="sidebar-header">
-    <div class="user-info" onclick="openProfileModal()">
-        <div class="avatar" id="myAvatar">👤</div>
-        <div class="user-details">
-            <div class="user-name" id="myDisplayName">Загрузка...</div>
-            <div class="user-username" id="myUsername">@username</div>
+<div class="chat-area">
+    <div class="chat-header" id="chatHeader" style="display: none;">
+        <div class="avatar" id="chatAvatar">👤</div>
+        <div class="chat-header-info">
+            <div class="chat-header-name" id="chatName"></div>
+            <div class="chat-header-status" id="chatStatus"></div>
         </div>
-    </div>
-    <button onclick="openAvatarModal()" style="margin-top:10px; width:100%; background:#2a2a2e; border:none; padding:8px; border-radius:8px; cursor:pointer; color:white;">📷 Сменить аватар</button>
-</div>
         <div class="call-buttons" id="callButtons" style="display: none;">
             <button class="call-btn" onclick="startCall(false)">📞</button>
             <button class="call-btn" onclick="startCall(true)">📹</button>
@@ -761,7 +776,6 @@
     <input type="password" id="loginPass" placeholder="Пароль">
     <button onclick="doLogin()">Войти</button>
 </div>
-
 <script>
     let ws = null;
     let myId = null;
