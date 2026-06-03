@@ -964,14 +964,36 @@
         if (modal) modal.classList.add('active');
     }
     
-    function sendSticker(emoji) {
-        if (!selectedChatId) return;
-        const payload = { type: 'text', content: emoji };
-        if (selectedChatType === 'user') payload.to_user_id = selectedChatId;
-        else payload.group_id = selectedChatId;
-        ws.send(JSON.stringify(payload));
-        closeModal('emojiModal');
+function sendSticker(emoji) {
+    if (!selectedChatId) {
+        alert('Выберите чат');
+        return;
     }
+    
+    const payload = { type: 'text', content: emoji };
+    if (selectedChatType === 'user') {
+        payload.to_user_id = selectedChatId;
+    } else {
+        payload.group_id = selectedChatId;
+    }
+    
+    // Отправляем через WebSocket
+    ws.send(JSON.stringify(payload));
+    
+    // Сразу добавляем сообщение в чат (локально, чтобы не ждать ответа сервера)
+    addMessageToChat(
+        Date.now().toString(),           // временный ID
+        myId,
+        myDisplayName,
+        myAvatarUrl,
+        emoji,
+        true,                            // isMine
+        'text',
+        new Date().toISOString()
+    );
+    
+    closeModal('emojiModal');
+}
 
     // ========== АВТОРИЗАЦИЯ ==========
     async function doRegister() {
