@@ -656,6 +656,170 @@
             border-color: #2a2a2e;
         }
         body.light .auth-box hr { border-color: #e4e6eb; }
+
+/* ========== МОБИЛЬНАЯ ВЕРСИЯ (до 768px) ========== */
+@media (max-width: 768px) {
+    /* Основные настройки */
+    body {
+        font-size: 14px;
+    }
+    
+    /* Левое меню — выезжает по кнопке */
+    .sidebar {
+        width: 280px;
+        min-width: 280px;
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        z-index: 1000;
+        height: 100vh;
+        transition: transform 0.3s ease;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    /* Кнопка меню — всегда видна */
+    .menu-toggle {
+        display: flex !important;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 200;
+        background: #9147ff;
+        border: none;
+        color: white;
+        font-size: 20px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    /* Основная область чата — на всю ширину */
+    .chat-area {
+        width: 100%;
+        margin-left: 0;
+    }
+    
+    /* Шапка чата — компактнее */
+    .chat-header {
+        padding: 8px 12px;
+        margin-left: 48px; /* чтобы не перекрывала кнопку меню */
+    }
+    .chat-header .avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+    .chat-header-name {
+        font-size: 15px;
+    }
+    .chat-header-status {
+        font-size: 11px;
+    }
+    
+    /* Сообщения — шире и компактнее */
+    .message {
+        max-width: 85%;
+        gap: 6px;
+    }
+    .message-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    .message-bubble {
+        padding: 8px 12px;
+        border-radius: 16px;
+    }
+    .message-username {
+        font-size: 11px;
+    }
+    .message-text {
+        font-size: 14px;
+    }
+    .message-time {
+        font-size: 9px;
+    }
+    .message-img {
+        max-width: 150px;
+    }
+    
+    /* Панель ввода — прилипает к низу */
+    .input-area {
+        position: sticky;
+        bottom: 0;
+        background: #18181b;
+        padding: 8px 12px;
+        gap: 6px;
+        flex-wrap: wrap;
+        border-top: 1px solid #2a2a2e;
+    }
+    .input-area input {
+        padding: 10px 12px;
+        font-size: 15px;
+    }
+    .input-area button {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+        padding: 0;
+    }
+    
+    /* Модальные окна — на весь экран */
+    .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 10px;
+        padding: 16px;
+    }
+    
+    /* Эмодзи — мельче */
+    .emoji {
+        font-size: 28px;
+        width: 44px;
+        height: 44px;
+    }
+    
+    /* Аватарка в левом меню */
+    .avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    .user-name {
+        font-size: 14px;
+    }
+    .user-username {
+        font-size: 11px;
+    }
+    
+    /* Кнопки в меню */
+    .change-avatar-btn, .settings-item {
+        font-size: 13px;
+        padding: 10px;
+    }
+    
+    /* Затемнение при открытом меню */
+    .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    .overlay.active {
+        display: block;
+    }
+}
     </style>
 </head>
 <body class="dark">
@@ -1417,6 +1581,23 @@ function sendSticker(emoji) {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `chat_${selectedChatId}.json`; a.click();
         closeModal('chatMenuModal');
     }
+// Открыть/закрыть меню
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('active');
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// Закрыть меню при клике на overlay
+document.getElementById('overlay')?.addEventListener('click', closeSidebar);
 
     async function startCall(isVideo) {
         if (!selectedChatId || selectedChatType !== 'user') { alert('Выберите пользователя'); return; }
