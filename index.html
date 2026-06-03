@@ -586,36 +586,76 @@
             .chat-item, .group-item { padding: 10px 12px; }
         }
 
-        .auth-screen {
-            padding: 20px;
+        /* Экран авторизации */
+        .auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0e0e10;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            height: 100%;
-            max-width: 400px;
-            margin: 0 auto;
+            z-index: 5000;
         }
-        .auth-screen input, .auth-screen button {
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: none;
+        body.light .auth-container { background: #f0f2f5; }
+        
+        .auth-box {
+            background: #1f1f23;
+            border-radius: 28px;
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        body.light .auth-box { background: #ffffff; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        
+        .auth-box h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #9147ff;
+        }
+        .auth-box h3 {
             font-size: 16px;
+            margin: 20px 0 8px 0;
         }
-        .auth-screen button {
+        .auth-box input {
+            width: 100%;
+            padding: 14px;
+            margin: 6px 0;
+            background: #2a2a2e;
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-size: 15px;
+        }
+        body.light .auth-box input { background: #f0f2f5; color: #050505; border: 1px solid #e4e6eb; }
+        
+        .auth-box button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
             background: #9147ff;
+            border: none;
+            border-radius: 14px;
             color: white;
             font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
         }
-        .auth-screen hr { margin: 15px 0; border-color: #2a2a2e; }
+        .auth-box hr {
+            margin: 24px 0;
+            border-color: #2a2a2e;
+        }
+        body.light .auth-box hr { border-color: #e4e6eb; }
     </style>
 </head>
 <body class="dark">
 
 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
 
-<div class="sidebar" id="sidebar">
+<div class="sidebar" id="sidebar" style="display: none;">
     <button class="sidebar-close" onclick="closeSidebar()">✕</button>
     <div class="sidebar-header">
         <div class="user-info" onclick="openProfileModal()">
@@ -640,7 +680,7 @@
     <div class="chats-list" id="groupsList"></div>
 </div>
 
-<div class="chat-area">
+<div class="chat-area" id="chatArea" style="display: none;">
     <div class="chat-header" id="chatHeader" style="display: none;">
         <div class="avatar" id="chatAvatar">👤</div>
         <div class="chat-header-info">
@@ -673,6 +713,24 @@
     </div>
 </div>
 
+<!-- Экран авторизации -->
+<div id="authContainer" class="auth-container">
+    <div class="auth-box">
+        <h2>💬 ЭХО</h2>
+        <h3>🔐 Регистрация</h3>
+        <input type="text" id="regUsername" placeholder="@username">
+        <input type="text" id="regDisplayName" placeholder="Отображаемое имя">
+        <input type="tel" id="regPhone" placeholder="Номер телефона (+7XXXXXXXXXX)">
+        <input type="password" id="regPass" placeholder="Пароль">
+        <button onclick="doRegister()">Создать аккаунт</button>
+        <hr>
+        <h3>🔐 Вход</h3>
+        <input type="text" id="loginUsername" placeholder="@username">
+        <input type="password" id="loginPass" placeholder="Пароль">
+        <button onclick="doLogin()">Войти</button>
+    </div>
+</div>
+
 <div id="settingsModal" class="modal">
     <div class="modal-content settings-menu">
         <div class="settings-item" onclick="openProfileModal(); closeModal('settingsModal');"><div class="settings-icon">👤</div><div>Мой профиль</div></div>
@@ -698,9 +756,20 @@
 </div>
 
 <div id="emojiModal" class="modal">
-    <div class="modal-content">
-        <h3>Выберите стикер</h3>
-        <div class="emoji-picker" id="emojiPicker"></div>
+    <div class="modal-content" style="width: 90%; max-width: 500px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid #2a2a2e; padding-bottom: 10px; margin-bottom: 10px;">
+            <button onclick="showEmojiCategory('smileys')" class="emoji-cat-btn" data-cat="smileys">😃</button>
+            <button onclick="showEmojiCategory('emotions')" class="emoji-cat-btn" data-cat="emotions">💋</button>
+            <button onclick="showEmojiCategory('people')" class="emoji-cat-btn" data-cat="people">👨‍👩‍👧</button>
+            <button onclick="showEmojiCategory('animals')" class="emoji-cat-btn" data-cat="animals">🐶</button>
+            <button onclick="showEmojiCategory('food')" class="emoji-cat-btn" data-cat="food">🍕</button>
+            <button onclick="showEmojiCategory('travel')" class="emoji-cat-btn" data-cat="travel">🚗</button>
+            <button onclick="showEmojiCategory('sports')" class="emoji-cat-btn" data-cat="sports">🏀</button>
+            <button onclick="showEmojiCategory('objects')" class="emoji-cat-btn" data-cat="objects">💡</button>
+            <button onclick="showEmojiCategory('symbols')" class="emoji-cat-btn" data-cat="symbols">❤️</button>
+            <button onclick="showEmojiCategory('flags')" class="emoji-cat-btn" data-cat="flags">🏁</button>
+        </div>
+        <div id="emojiPicker" style="max-height: 400px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px;"></div>
         <button onclick="closeModal('emojiModal')">Закрыть</button>
     </div>
 </div>
@@ -761,21 +830,6 @@
 </div>
 
 <div id="overlay" class="overlay" onclick="closeSidebar()"></div>
-
-<div id="authScreen" class="auth-screen">
-    <h2>💬 ЭХО</h2>
-    <h3>🔐 Регистрация</h3>
-    <input type="text" id="regUsername" placeholder="@username">
-    <input type="text" id="regDisplayName" placeholder="Отображаемое имя">
-    <input type="tel" id="regPhone" placeholder="Номер телефона (+7XXXXXXXXXX)">
-    <input type="password" id="regPass" placeholder="Пароль">
-    <button onclick="doRegister()">Создать аккаунт</button>
-    <hr>
-    <h3>🔐 Вход</h3>
-    <input type="text" id="loginUsername" placeholder="@username">
-    <input type="password" id="loginPass" placeholder="Пароль">
-    <button onclick="doLogin()">Войти</button>
-</div>
 <script>
     let ws = null;
     let myId = null;
@@ -800,9 +854,38 @@
     let isInCall = false;
     let isVideoCall = false;
 
-    const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🎉', '🔥', '👀', '😍', '😱', '🤔', '🙏', '💩'];
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+    const emojiCategories = {
+        smileys: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','🫠','😉','😊','😇','🥰','😍','🤩','😘','😗','☺️','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🫢','🫣','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😶‍🌫️','😏','😒','🙄','😬','😮‍💨','🤥','🫨','🙂‍↔️','🙂‍↕️','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','🫤','😟','🙁','☹️','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🙈','🙉','🙊'],
+        emotions: ['💋','💌','💘','💝','💖','💗','💓','💞','💕','💟','❣️','💔','❤️‍🔥','❤️‍🩹','❤️','🩷','🧡','💛','💚','💙','🩵','💜','🤎','🖤','🩶','🤍','💯','💢','💥','💫','💦','💨','🕳️','💬','👁️‍🗨️','🗨️','🗯️','💭','💤'],
+        people: ['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','🫷','🫸','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','🫦','👶','🧒','👦','👧','🧑','👱','👨','🧔','🧔‍♂️','🧔‍♀️','👨‍🦰','👨‍🦱','👨‍🦳','👨‍🦲','👩','👩‍🦰','🧑‍🦰','👩‍🦱','🧑‍🦱','👩‍🦳','🧑‍🦳','👩‍🦲','🧑‍🦲','👱‍♀️','👱‍♂️','🧓','👴','👵','🙍','🙍‍♂️','🙍‍♀️','🙎','🙎‍♂️','🙎‍♀️','🙅','🙅‍♂️','🙅‍♀️','🙆','🙆‍♂️','🙆‍♀️','💁','💁‍♂️','💁‍♀️','🙋','🙋‍♂️','🙋‍♀️','🧏','🧏‍♂️','🧏‍♀️','🙇','🙇‍♂️','🙇‍♀️','🤦','🤦‍♂️','🤦‍♀️','🤷','🤷‍♂️','🤷‍♀️','🧑‍⚕️','👨‍⚕️','👩‍⚕️','🧑‍🎓','👨‍🎓','👩‍🎓','🧑‍🏫','👨‍🏫','👩‍🏫','🧑‍⚖️','👨‍⚖️','👩‍⚖️','🧑‍🌾','👨‍🌾','👩‍🌾','🧑‍🍳','👨‍🍳','👩‍🍳','🧑‍🔧','👨‍🔧','👩‍🔧','🧑‍🏭','👨‍🏭','👩‍🏭','🧑‍💼','👨‍💼','👩‍💼','🧑‍🔬','👨‍🔬','👩‍🔬','🧑‍💻','👨‍💻','👩‍💻','🧑‍🎤','👨‍🎤','👩‍🎤','🧑‍🎨','👨‍🎨','👩‍🎨','🧑‍✈️','👨‍✈️','👩‍✈️','🧑‍🚀','👨‍🚀','👩‍🚀','🧑‍🚒','👨‍🚒','👩‍🚒','👮','👮‍♂️','👮‍♀️','🕵️','🕵️‍♂️','🕵️‍♀️','💂','💂‍♂️','💂‍♀️','🥷','👷','👷‍♂️','👷‍♀️','🫅','🤴','👸','👳','👳‍♂️','👳‍♀️','👲','🧕','🤵','🤵‍♂️','🤵‍♀️','👰','👰‍♂️','👰‍♀️','🤰','🫃','🫄','🤱','👩‍🍼','👨‍🍼','🧑‍🍼','👼','🎅','🤶','🧑‍🎄','🦸','🦸‍♂️','🦸‍♀️','🦹','🦹‍♂️','🦹‍♀️','🧙','🧙‍♂️','🧙‍♀️','🧚','🧚‍♂️','🧚‍♀️','🧛','🧛‍♂️','🧛‍♀️','🧜','🧜‍♂️','🧜‍♀️','🧝','🧝‍♂️','🧝‍♀️','🧞','🧞‍♂️','🧞‍♀️','🧟','🧟‍♂️','🧟‍♀️','🧌','💆','💆‍♂️','💆‍♀️','💇','💇‍♂️','💇‍♀️','🚶','🚶‍♂️','🚶‍♀️','🚶‍➡️','🚶‍♀️‍➡️','🚶‍♂️‍➡️','🧍','🧍‍♂️','🧍‍♀️','🧎','🧎‍♂️','🧎‍♀️','🧎‍➡️','🧎‍♀️‍➡️','🧎‍♂️‍➡️','🧑‍🦯','🧑‍🦯‍➡️','👨‍🦯','👨‍🦯‍➡️','👩‍🦯','👩‍🦯‍➡️','🧑‍🦼','🧑‍🦼‍➡️','👨‍🦼','👨‍🦼‍➡️','👩‍🦼','👩‍🦼‍➡️','🧑‍🦽','🧑‍🦽‍➡️','👨‍🦽','👨‍🦽‍➡️','👩‍🦽','👩‍🦽‍➡️','🏃','🏃‍♂️','🏃‍♀️','🏃‍➡️','🏃‍♀️‍➡️','🏃‍♂️‍➡️','💃','🕺','🕴️','👯','👯‍♂️','👯‍♀️','🧖','🧖‍♂️','🧖‍♀️','🧗','🧗‍♂️','🧗‍♀️','🤺','🏇','⛷️','🏂','🏌️','🏌️‍♂️','🏌️‍♀️','🏄','🏄‍♂️','🏄‍♀️','🚣','🚣‍♂️','🚣‍♀️','🏊','🏊‍♂️','🏊‍♀️','⛹️','⛹️‍♂️','⛹️‍♀️','🏋️','🏋️‍♂️','🏋️‍♀️','🚴','🚴‍♂️','🚴‍♀️','🚵','🚵‍♂️','🚵‍♀️','🤸','🤸‍♂️','🤸‍♀️','🤼','🤼‍♂️','🤼‍♀️','🤽','🤽‍♂️','🤽‍♀️','🤾','🤾‍♂️','🤾‍♀️','🤹','🤹‍♂️','🤹‍♀️','🧘','🧘‍♂️','🧘‍♀️','🛀','🛌','🧑‍🤝‍🧑','👭','👫','👬','💏','👩‍❤️‍💋‍👨','👨‍❤️‍💋‍👨','👩‍❤️‍💋‍👩','💑','👩‍❤️‍👨','👨‍❤️‍👨','👩‍❤️‍👩','👨‍👩‍👦','👨‍👩‍👧','👨‍👩‍👧‍👦','👨‍👩‍👦‍👦','👨‍👩‍👧‍👧','👨‍👦','👨‍👦‍👦','👨‍👧','👨‍👧‍👦','👨‍👧‍👧','👩‍👦','👩‍👦‍👦','👩‍👧','👩‍👧‍👦','👩‍👧‍👧','🗣️','👤','👥','🫂','👪','👣','🦰','🦱','🦳','🦲'],
+        animals: ['🐶','🐵','🐒','🦍','🦧','🐕','🦮','🐕‍🦺','🐩','🐺','🦊','🦝','🐱','🐈','🐈‍⬛','🦁','🐯','🐅','🐆','🐴','🫎','🫏','🐎','🦄','🦓','🦌','🦬','🐮','🐂','🐃','🐄','🐷','🐖','🐗','🐽','🐏','🐑','🐐','🐪','🐫','🦙','🦒','🐘','🦣','🦏','🦛','🐭','🐁','🐀','🐹','🐰','🐇','🐿️','🦫','🦔','🦇','🐻','🐻‍❄️','🐨','🐼','🦥','🦦','🦨','🦘','🦡','🐾','🦃','🐔','🐓','🐣','🐤','🐥','🐦','🐧','🕊️','🦅','🦆','🦢','🦉','🦤','🪶','🦩','🦚','🦜','🪽','🐦‍⬛','🪿','🐦‍🔥','🐸','🐊','🐢','🦎','🐍','🐲','🐉','🦕','🦖','🐳','🐋','🐬','🦭','🐟','🐠','🐡','🦈','🐙','🐚','🪸','🪼','🦀','🦞','🦐','🦑','🦪','🐌','🦋','🐛','🐜','🐝','🪲','🐞','🦗','🪳','🕷️','🕸️','🦂','🦟','🪰','🪱','🦠','💐','🌸','💮','🪷','🏵️','🌹','🥀','🌺','🌻','🌼','🌷','🪻','🌱','🪴','🌲','🌳','🌴','🌵','🌾','🌿','☘️','🍀','🍁','🍂','🍃','🪹','🪺','🍄'],
+        food: ['🍇','🍈','🍉','🍊','🍋','🍋‍🟩','🍌','🍍','🥭','🍎','🍏','🍐','🍑','🍒','🍓','🫐','🥝','🍅','🫒','🥥','🥑','🍆','🥔','🥕','🌽','🌶️','🫑','🥒','🥬','🥦','🧄','🧅','🥜','🫘','🌰','🫚','🫛','🍄‍🟫','🍞','🥐','🥖','🫓','🥨','🥯','🥞','🧇','🧀','🍖','🍗','🥩','🥓','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🫔','🥙','🧆','🥚','🍳','🥘','🍲','🫕','🥣','🥗','🍿','🧈','🧂','🥫','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🍥','🥮','🍡','🥟','🥠','🥡','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍮','🍯','🍼','🥛','☕','🫖','🍵','🍶','🍾','🍷','🍸','🍹','🍺','🍻','🥂','🥃','🫗','🥤','🧋','🧃','🧉','🧊','🥢','🍽️','🍴','🥄','🔪','🫙','🏺'],
+        travel: ['🌍','🌎','🌏','🌐','🗺️','🗾','🧭','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️','🏝️','🏞️','🏟️','🏛️','🏗️','🧱','🪨','🪵','🛖','🏘️','🏚️','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🕋','⛲','⛺','🌁','🌃','🏙️','🌄','🌅','🌆','🌇','🌉','♨️','🎠','🛝','🎡','🎢','💈','🎪','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚌','🚍','🚎','🚐','🚑','🚒','🚓','🚔','🚕','🚖','🚗','🚘','🚙','🛻','🚚','🚛','🚜','🏎️','🏍️','🛵','🦽','🦼','🛺','🚲','🛴','🛹','🛼','🚏','🛣️','🛤️','🛢️','⛽','🛞','🚨','🚥','🚦','🛑','🚧','⚓','🛟','⛵','🛶','🚤','🛳️','⛴️','🛥️','🚢','✈️','🛩️','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛰️','🚀','🛸','🛎️','🧳','⌛','⏳','⌚','⏰','⏱️','⏲️','🕰️','🕛','🕧','🕐','🕜','🕑','🕝','🕒','🕞','🕓','🕟','🕔','🕠','🕕','🕡','🕖','🕢','🕗','🕣','🕘','🕤','🕙','🕥','🕚','🕦','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','🌡️','☀️','🌝','🌞','🪐','⭐','🌟','🌠','🌌','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','🌪️','🌫️','🌬️','🌀','🌈','🌂','☂️','☔','⛱️','⚡','❄️','☃️','⛄','☄️','🔥','💧','🌊'],
+        sports: ['🏀','⚽','⚾','🥎','🏐','🏈','🏉','🎾','🥏','🎳','🏏','🏑','🏒','🥍','🏓','🏸','🥊','🥋','🥅','⛳','⛸️','🎣','🤿','🎽','🎿','🛷','🥌','🎯','🪀','🪁','🔫','🎱','🔮','🪄','🎮','🕹️','🎰','🎲','🧩','🧸','🪅','🪩','🪆','♠️','♥️','♦️','♣️','♟️','🃏','🀄','🎴','🎭','🖼️','🎨','🧵','🪡','🧶','🪢','🎃','🎄','🎆','🎇','🧨','✨','🎈','🎉','🎊','🎋','🎍','🎎','🎏','🎐','🎑','🧧','🎀','🎁','🎗️','🎟️','🎫','🎖️','🏆','🏅','🥇','🥈','🥉'],
+        objects: ['🕶️','👓','🥽','🥼','🦺','👔','👕','👖','🧣','🧤','🧥','🧦','👗','👘','🥻','🩱','🩲','🩳','👙','👚','🪭','👛','👜','👝','🛍️','🎒','🩴','👞','👟','🥾','🥿','👠','👡','🩰','👢','🪮','👑','👒','🎩','🎓','🧢','🪖','⛑️','📿','💄','💍','💎','🔇','🔈','🔉','🔊','📢','📣','📯','🔔','🔕','🎼','🎵','🎶','🎙️','🎚️','🎛️','🎤','🎧','📻','🎷','🪗','🎸','🎹','🎺','🎻','🪕','🥁','🪘','🪇','🪈','📱','📲','☎️','📞','📟','📠','🔋','🪫','🔌','💻','🖥️','🖨️','⌨️','🖱️','🖲️','💽','💾','💿','📀','🧮','🎥','🎞️','📽️','🎬','📺','📷','📸','📹','📼','🔍','🔎','🕯️','💡','🔦','🏮','🪔','📔','📕','📖','📗','📘','📙','📚','📓','📒','📃','📜','📄','📰','🗞️','📑','🔖','🏷️','💰','🪙','💴','💵','💶','💷','💸','💳','🧾','💹','✉️','📧','📨','📩','📤','📥','📦','📫','📪','📬','📭','📮','🗳️','✏️','✒️','🖋️','🖊️','🖌️','🖍️','📝','💼','📁','📂','🗂️','📅','📆','🗒️','🗓️','📇','📈','📉','📊','📋','📌','📍','📎','🖇️','📏','📐','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓','⛏️','⚒️','🛠️','🗡️','⚔️','💣','🪃','🏹','🛡️','🪚','🔧','🪛','🔩','⚙️','🗜️','⚖️','🦯','🔗','⛓️‍💥','⛓️','🪝','🧰','🧲','🪜','⚗️','🧪','🧫','🧬','🔬','🔭','📡','💉','🩸','💊','🩹','🩼','🩺','🩻','🚪','🛗','🪞','🪟','🛏️','🛋️','🪑','🚽','🪠','🚿','🛁','🪤','🪒','🧴','🧷','🧹','🧺','🧻','🪣','🧼','🫧','🪥','🧽','🧯','🛒','🚬','⚰️','🪦','⚱️','🧿','🪬','🗿','🪧','🪪'],
+        symbols: ['✅','❌','⭕','✔️','❎','➰','➿','〽️','✳️','✴️','❇️','©️','®️','™️','#️⃣','*️⃣','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔠','🔡','🔢','🔣','🔤','🅰️','🆎','🅱️','🆑','🆒','🆓','ℹ️','🆔','Ⓜ️','🆕','🆖','🅾️','🆗','🅿️','🆘','🆙','🆚','🈁','🈂️','🈷️','🈶','🈯','🉐','🈹','🈚','🈲','🉑','🈸','🈴','🈳','㊗️','㊙️','🈺','🈵','🔴','🟠','🟡','🟢','🔵','🟣','🟤','⚫','⚪','🟥','🟧','🟨','🟩','🟦','🟪','🟫','⬛','⬜','◼️','◻️','◾','◽','▪️','▫️','🔶','🔷','🔸','🔹','🔺','🔻','💠','🔘','🔳','🔲','🏧','🚮','🚰','♿','🚹','🚺','🚻','🚼','🚾','🛂','🛃','🛄','🛅','⚠️','🚸','⛔','🚫','🚳','🚭','🚯','🚱','🚷','📵','🔞','☢️','☣️','⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️','↕️','↔️','↩️','↪️','⤴️','⤵️','🔃','🔄','🔙','🔚','🔛','🔜','🔝','🛐','⚛️','🕉️','✡️','☸️','☯️','✝️','☦️','☪️','☮️','🕎','🔯','🪯','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','⛎','🔀','🔁','🔂','▶️','⏩','⏭️','⏯️','◀️','⏪','⏮️','🔼','⏫','🔽','⏬','⏸️','⏹️','⏺️','⏏️','🎦','🔅','🔆','📶','🛜','📳','📴','♀️','♂️','⚧️','✖️','➕','➖','➗','🟰','♾️','‼️','⁉️','❓','❔','❕','❗','〰️','💱','💲','⚕️','♻️','⚜️','🔱','📛','🔰'],
+        flags: ['🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🇦🇨','🇦🇩','🇦🇪','🇦🇫','🇦🇬','🇦🇮','🇦🇱','🇦🇲','🇦🇴','🇦🇶','🇦🇷','🇦🇸','🇦🇹','🇦🇺','🇦🇼','🇦🇽','🇦🇿','🇧🇦','🇧🇧','🇧🇩','🇧🇪','🇧🇫','🇧🇬','🇧🇭','🇧🇮','🇧🇯','🇧🇱','🇧🇲','🇧🇳','🇧🇴','🇧🇶','🇧🇷','🇧🇸','🇧🇹','🇧🇻','🇧🇼','🇧🇾','🇧🇿','🇨🇦','🇨🇨','🇨🇩','🇨🇫','🇨🇬','🇨🇭','🇨🇮','🇨🇰','🇨🇱','🇨🇲','🇨🇳','🇨🇴','🇨🇵','🇨🇷','🇨🇺','🇨🇻','🇨🇼','🇨🇽','🇨🇾','🇨🇿','🇩🇪','🇩🇬','🇩🇯','🇩🇰','🇩🇲','🇩🇴','🇩🇿','🇪🇦','🇪🇨','🇪🇪','🇪🇬','🇪🇭','🇪🇷','🇪🇸','🇪🇹','🇪🇺','🇫🇮','🇫🇯','🇫🇰','🇫🇲','🇫🇴','🇫🇷','🇬🇦','🇬🇧','🇬🇩','🇬🇪','🇬🇫','🇬🇬','🇬🇭','🇬🇮','🇬🇱','🇬🇲','🇬🇳','🇬🇵','🇬🇶','🇬🇷','🇬🇸','🇬🇹','🇬🇺','🇬🇼','🇬🇾','🇭🇰','🇭🇲','🇭🇳','🇭🇷','🇭🇹','🇭🇺','🇮🇨','🇮🇩','🇮🇪','🇮🇱','🇮🇲','🇮🇳','🇮🇴','🇮🇶','🇮🇷','🇮🇸','🇮🇹','🇯🇪','🇯🇲','🇯🇴','🇯🇵','🇰🇪','🇰🇬','🇰🇭','🇰🇮','🇰🇲','🇰🇳','🇰🇵','🇰🇷','🇰🇼','🇰🇾','🇰🇿','🇱🇦','🇱🇧','🇱🇨','🇱🇮','🇱🇰','🇱🇷','🇱🇸','🇱🇹','🇱🇺','🇱🇻','🇱🇾','🇲🇦','🇲🇨','🇲🇩','🇲🇪','🇲🇫','🇲🇬','🇲🇭','🇲🇰','🇲🇱','🇲🇲','🇲🇳','🇲🇴','🇲🇵','🇲🇶','🇲🇷','🇲🇸','🇲🇹','🇲🇺','🇲🇻','🇲🇼','🇲🇽','🇲🇾','🇲🇿','🇳🇦','🇳🇨','🇳🇪','🇳🇫','🇳🇬','🇳🇮','🇳🇱','🇳🇴','🇳🇵','🇳🇷','🇳🇺','🇳🇿','🇴🇲','🇵🇦','🇵🇪','🇵🇫','🇵🇬','🇵🇭','🇵🇰','🇵🇱','🇵🇲','🇵🇳','🇵🇷','🇵🇸','🇵🇹','🇵🇼','🇵🇾','🇶🇦','🇷🇪','🇷🇴','🇷🇸','🇷🇺','🇷🇼','🇸🇦','🇸🇧','🇸🇨','🇸🇩','🇸🇪','🇸🇬','🇸🇭','🇸🇮','🇸🇯','🇸🇰','🇸🇱','🇸🇲','🇸🇳','🇸🇴','🇸🇷','🇸🇸','🇸🇹','🇸🇻','🇸🇽','🇸🇾','🇸🇿','🇹🇦','🇹🇨','🇹🇩','🇹🇫','🇹🇬','🇹🇭','🇹🇯','🇹🇰','🇹🇱','🇹🇲','🇹🇳','🇹🇴','🇹🇷','🇹🇹','🇹🇻','🇹🇼','🇹🇿','🇺🇦','🇺🇬','🇺🇲','🇺🇳','🇺🇸','🇺🇾','🇺🇿','🇻🇦','🇻🇨','🇻🇪','🇻🇬','🇻🇮','🇻🇳','🇻🇺','🇼🇫','🇼🇸','🇽🇰','🇾🇪','🇾🇹','🇿🇦','🇿🇲','🇿🇼','🏴󠁧󠁢󠁥󠁮󠁧󠁿','🏴󠁧󠁢󠁳󠁣󠁴󠁿','🏴󠁧󠁢󠁷󠁬󠁳󠁿']
+    };
+
+    let currentEmojiCategory = 'smileys';
+
+    function showEmojiCategory(category) {
+        currentEmojiCategory = category;
+        const container = document.getElementById('emojiPicker');
+        const emojis = emojiCategories[category] || [];
+        container.innerHTML = emojis.map(e => `<span class="emoji" onclick="sendSticker('${e}')">${e}</span>`).join('');
+        document.querySelectorAll('.emoji-cat-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-cat') === category);
+        });
+    }
+
+    function initEmojiPicker() {
+        showEmojiCategory('smileys');
+    }
+
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
     function getAvatarInitials(name) { return name ? name.charAt(0).toUpperCase() : '?'; }
     function renderAvatar(avatarUrl, name, sizeClass = 'avatar') {
@@ -817,6 +900,7 @@
     function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').style.display = 'none'; }
     function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); }
 
+    // ========== ТЕМА ==========
     function toggleTheme() {
         const body = document.body;
         if (body.classList.contains('dark')) { body.classList.remove('dark'); body.classList.add('light'); localStorage.setItem('theme', 'light'); }
@@ -824,6 +908,7 @@
     }
     function loadTheme() { if (localStorage.getItem('theme') === 'light') { document.body.classList.remove('dark'); document.body.classList.add('light'); } }
 
+    // ========== АВАТАРКИ ==========
     function updateMyInfo() {
         const avatarHtml = renderAvatar(myAvatarUrl, myDisplayName, 'avatar');
         document.getElementById('myAvatar').innerHTML = avatarHtml;
@@ -866,6 +951,7 @@
         }
     }
 
+    // ========== ПРОФИЛЬ ==========
     function openProfileModal() {
         document.getElementById('profileDisplayName').value = myDisplayName;
         document.getElementById('profileBio').value = '';
@@ -889,12 +975,7 @@
         }
     }
 
-    function initEmojiPicker() {
-        let html = '';
-        emojis.forEach(e => html += `<div class="emoji" onclick="sendSticker('${e}')">${e}</div>`);
-        document.getElementById('emojiPicker').innerHTML = html;
-    }
-    function showEmojiPicker() { document.getElementById('emojiModal').classList.add('active'); }
+    // ========== СТИКЕРЫ ==========
     function sendSticker(emoji) {
         if (!selectedChatId) return;
         const payload = { type: 'text', content: emoji };
@@ -904,6 +985,7 @@
         closeModal('emojiModal');
     }
 
+    // ========== АВТОРИЗАЦИЯ ==========
     async function doRegister() {
         let username = document.getElementById('regUsername').value.trim();
         let displayName = document.getElementById('regDisplayName').value.trim();
@@ -941,7 +1023,9 @@
             localStorage.setItem('echo_avatar_url', myAvatarUrl || '');
             localStorage.setItem('echo_is_admin', myIsAdmin);
             
-            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('sidebar').style.display = 'flex';
+            document.getElementById('chatArea').style.display = 'flex';
             updateMyInfo();
             connectWebSocket();
             await loadChatsAndGroups();
@@ -961,7 +1045,9 @@
             myDisplayName = savedName;
             myAvatarUrl = savedAvatar || null;
             myIsAdmin = savedAdmin === 'true';
-            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('sidebar').style.display = 'flex';
+            document.getElementById('chatArea').style.display = 'flex';
             updateMyInfo();
             connectWebSocket();
             loadChatsAndGroups();
@@ -971,6 +1057,7 @@
     }
     function logout() { localStorage.clear(); location.reload(); }
 
+    // ========== WEBSOCKET ==========
     function connectWebSocket() {
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${location.host}/ws`;
@@ -1012,6 +1099,7 @@
     function sendTyping() { if (ws && selectedChatType === 'user' && selectedChatId) ws.send(JSON.stringify({ type: 'typing', to_user_id: selectedChatId })); }
     document.getElementById('messageInput')?.addEventListener('input', () => { if (typingTimeout) clearTimeout(typingTimeout); sendTyping(); typingTimeout = setTimeout(() => {}, 1000); });
 
+    // ========== ДИАЛОГИ И ГРУППЫ ==========
     async function loadChatsAndGroups() {
         const savedChats = localStorage.getItem('echo_chats');
         if (savedChats) {
@@ -1163,6 +1251,7 @@
     function cancelReply() { replyTo = null; document.getElementById('replyIndicator').style.display = 'none'; }
     function saveMessage(id, content) { savedMessages[id] = content; localStorage.setItem('savedMessages', JSON.stringify(savedMessages)); alert('✅ Сообщение сохранено в избранное'); }
 
+    // ========== ПОИСК ==========
     document.getElementById('searchInput')?.addEventListener('input', async (e) => {
         const q = e.target.value.trim();
         const resultsDiv = document.getElementById('searchResults');
@@ -1186,6 +1275,7 @@
     }
     document.addEventListener('click', (e) => { if (!e.target.closest('.search-container')) document.getElementById('searchResults').style.display = 'none'; });
 
+    // ========== ГРУППЫ ==========
     async function showCreateGroupModal() {
         const select = document.getElementById('groupMembers');
         select.innerHTML = '';
@@ -1203,6 +1293,7 @@
         if (res.ok) { closeModal('createGroupModal'); loadChatsAndGroups(); alert('✅ Группа создана'); } else alert('❌ Ошибка создания группы');
     }
 
+    // ========== КОНТАКТЫ ==========
     async function showContacts() {
         const res = await fetch('/api/users');
         const usersList = await res.json();
@@ -1221,6 +1312,7 @@
         closeSidebar();
     }
 
+    // ========== ИСТОРИЯ ЗВОНКОВ ==========
     async function showCallsHistory() {
         const res = await fetch(`/api/calls/${myId}`);
         const calls = await res.json();
