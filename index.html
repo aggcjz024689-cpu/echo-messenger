@@ -657,14 +657,7 @@
         }
         body.light .auth-box hr { border-color: #e4e6eb; }
 
-/* ========== МОБИЛЬНАЯ ВЕРСИЯ (до 768px) ========== */
 @media (max-width: 768px) {
-    /* Основные настройки */
-    body {
-        font-size: 14px;
-    }
-    
-    /* Левое меню — выезжает по кнопке */
     .sidebar {
         width: 280px;
         min-width: 280px;
@@ -676,11 +669,8 @@
         height: 100vh;
         transition: transform 0.3s ease;
     }
-    .sidebar.open {
-        transform: translateX(0);
-    }
+    .sidebar.open { transform: translateX(0); }
     
-    /* Кнопка меню — всегда видна */
     .menu-toggle {
         display: flex !important;
         position: fixed;
@@ -700,30 +690,29 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
     
-    /* Основная область чата — на всю ширину */
     .chat-area {
         width: 100%;
-        margin-left: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
     }
     
-    /* Шапка чата — компактнее */
     .chat-header {
         padding: 8px 12px;
-        margin-left: 48px; /* чтобы не перекрывала кнопку меню */
+        margin-left: 48px;
     }
     .chat-header .avatar {
         width: 36px;
         height: 36px;
         font-size: 14px;
     }
-    .chat-header-name {
-        font-size: 15px;
-    }
-    .chat-header-status {
-        font-size: 11px;
+    
+    .messages-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
     }
     
-    /* Сообщения — шире и компактнее */
     .message {
         max-width: 85%;
         gap: 6px;
@@ -737,90 +726,49 @@
         padding: 8px 12px;
         border-radius: 16px;
     }
-    .message-username {
-        font-size: 11px;
-    }
     .message-text {
         font-size: 14px;
     }
-    .message-time {
-        font-size: 9px;
-    }
-    .message-img {
-        max-width: 150px;
-    }
     
-    /* Панель ввода — прилипает к низу */
+    /* ИСПРАВЛЕНАЯ ПАНЕЛЬ ВВОДА — кнопка справа */
     .input-area {
         position: sticky;
         bottom: 0;
         background: #18181b;
-        padding: 8px 12px;
-        gap: 6px;
-        flex-wrap: wrap;
+        padding: 10px 12px;
+        gap: 8px;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
         border-top: 1px solid #2a2a2e;
     }
     .input-area input {
+        flex: 1;
         padding: 10px 12px;
         font-size: 15px;
+        border-radius: 24px;
     }
     .input-area button {
-        width: 38px;
-        height: 38px;
-        font-size: 18px;
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
         padding: 0;
+        flex-shrink: 0;
+        border-radius: 50%;
     }
     
-    /* Модальные окна — на весь экран */
-    .modal-content {
-        width: 95%;
-        max-width: none;
-        margin: 10px;
-        padding: 16px;
-    }
-    
-    /* Эмодзи — мельче */
     .emoji {
         font-size: 28px;
         width: 44px;
         height: 44px;
     }
     
-    /* Аватарка в левом меню */
     .avatar {
         width: 40px;
         height: 40px;
         font-size: 16px;
     }
-    .user-name {
-        font-size: 14px;
-    }
-    .user-username {
-        font-size: 11px;
-    }
-    
-    /* Кнопки в меню */
-    .change-avatar-btn, .settings-item {
-        font-size: 13px;
-        padding: 10px;
-    }
-    
-    /* Затемнение при открытом меню */
-    .overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 999;
-    }
-    .overlay.active {
-        display: block;
-    }
-}
-    </style>
+}    </style>
 </head>
 <body class="dark">
 
