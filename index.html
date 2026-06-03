@@ -622,13 +622,15 @@
     <div class="chats-list" id="groupsList"></div>
 </div>
 
-<div class="user-info" onclick="openProfileModal()">
-    <div class="avatar" id="myAvatar" style="cursor:pointer;">👤</div>
-    <div class="user-details">
-        <div class="user-name" id="myDisplayName">Загрузка...</div>
-        <div class="user-username" id="myUsername">@username</div>
+<div class="sidebar-header">
+    <div class="user-info" onclick="openProfileModal()">
+        <div class="avatar" id="myAvatar">👤</div>
+        <div class="user-details">
+            <div class="user-name" id="myDisplayName">Загрузка...</div>
+            <div class="user-username" id="myUsername">@username</div>
+        </div>
     </div>
-<button onclick="openAvatarModal()" style="margin-top:5px; width:100%; background:#2a2a2e; border:none; padding:6px; border-radius:8px; cursor:pointer; color:white;">📷 Сменить аватар</button>
+    <button onclick="openAvatarModal()" style="margin-top:10px; width:100%; background:#2a2a2e; border:none; padding:8px; border-radius:8px; cursor:pointer; color:white;">📷 Сменить аватар</button>
 </div>
         <div class="call-buttons" id="callButtons" style="display: none;">
             <button class="call-btn" onclick="startCall(false)">📞</button>
