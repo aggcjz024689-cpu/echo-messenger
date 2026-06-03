@@ -305,14 +305,22 @@ async def get_chats(user_id: str):
         FROM messages 
         WHERE from_user_id = $1 OR to_user_id = $1
     ''', user_id)
-    await conn.close()
     
     chats = []
     for r in rows:
         if r['other_user_id']:
             other = await conn.fetchrow("SELECT id, username, display_name, avatar, is_admin, is_banned FROM users WHERE id = $1", r['other_user_id'])
             if other:
-                chats.append(dict(other))
+                chats.append({
+                    'id': other['id'],
+                    'username': other['username'],
+                    'display_name': other['display_name'],
+                    'avatar': other['avatar'] or '',
+                    'is_online': online_users.get(other['id'], False),
+                    'is_admin': other['is_admin'],
+                    'is_banned': other['is_banned']
+                })
+    await conn.close()
     return chats
 
 @app.get("/api/calls/{user_id}")

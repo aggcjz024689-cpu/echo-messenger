@@ -789,8 +789,11 @@
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
     function getAvatarInitials(name) { return name ? name.charAt(0).toUpperCase() : '?'; }
     function renderAvatar(avatarUrl, name, sizeClass = 'avatar') {
-        if (avatarUrl) return `<img src="${avatarUrl}" class="${sizeClass}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">`;
-        else return `<div class="${sizeClass}" style="background:#9147ff; display:flex; align-items:center; justify-content:center;">${getAvatarInitials(name)}</div>`;
+        if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined' && avatarUrl !== '') {
+            return `<img src="${avatarUrl}" class="${sizeClass}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">`;
+        } else {
+            return `<div class="${sizeClass}" style="background:#9147ff; display:flex; align-items:center; justify-content:center;">${getAvatarInitials(name)}</div>`;
+        }
     }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none'; }
@@ -813,8 +816,11 @@
 
     function openAvatarModal() {
         const preview = document.getElementById('avatarPreview');
-        if (myAvatarUrl) preview.innerHTML = `<img src="${myAvatarUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;">`;
-        else preview.innerHTML = `<div style="width:100px;height:100px;border-radius:50%;background:#9147ff;display:flex;align-items:center;justify-content:center;font-size:36px;">${getAvatarInitials(myDisplayName)}</div>`;
+        if (myAvatarUrl && myAvatarUrl !== 'null') {
+            preview.innerHTML = `<img src="${myAvatarUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;">`;
+        } else {
+            preview.innerHTML = `<div style="width:100px;height:100px;border-radius:50%;background:#9147ff;display:flex;align-items:center;justify-content:center;font-size:36px;">${getAvatarInitials(myDisplayName)}</div>`;
+        }
         document.getElementById('avatarModal').classList.add('active');
         closeSidebar();
     }
@@ -917,12 +923,11 @@
             localStorage.setItem('echo_display_name', myDisplayName);
             localStorage.setItem('echo_avatar_url', myAvatarUrl || '');
             localStorage.setItem('echo_is_admin', myIsAdmin);
-            const savedChats = localStorage.getItem('echo_chats');
-            if (savedChats) chats = JSON.parse(savedChats);
+            
             document.getElementById('authScreen').style.display = 'none';
             updateMyInfo();
             connectWebSocket();
-            loadChatsAndGroups();
+            await loadChatsAndGroups();
             loadTheme();
             if (Notification.permission === 'default') Notification.requestPermission();
         } else alert('❌ Ошибка входа: ' + (data.detail || 'Неверные данные'));
@@ -939,8 +944,6 @@
             myDisplayName = savedName;
             myAvatarUrl = savedAvatar || null;
             myIsAdmin = savedAdmin === 'true';
-            const savedChats = localStorage.getItem('echo_chats');
-            if (savedChats) chats = JSON.parse(savedChats);
             document.getElementById('authScreen').style.display = 'none';
             updateMyInfo();
             connectWebSocket();
@@ -962,8 +965,9 @@
                 if (selectedChatId === data.from && selectedChatType === 'user') addMessageToChat(data.id, data.from, data.from_username, data.from_avatar, data.content, false, data.type2, data.timestamp);
                 else incrementUnread(data.from, data.from_username);
                 showNotification(data.from_username, data.content);
+                // Добавляем собеседника в диалоги, если его там нет
                 if (!chats.find(c => c.id === data.from)) {
-                    chats.unshift({ id: data.from, display_name: data.from_username, username: data.from_username });
+                    chats.unshift({ id: data.from, display_name: data.from_username, username: data.from_username, avatar: data.from_avatar });
                     localStorage.setItem('echo_chats', JSON.stringify(chats));
                     renderChatsAndGroups();
                 }
@@ -973,7 +977,6 @@
             } else if (data.type === 'users_list') {
                 users = {};
                 data.users.forEach(u => { users[u.id] = u; });
-                loadChatsAndGroups();
             } else if (data.type === 'typing') {
                 if (selectedChatType === 'user' && selectedChatId === data.from) {
                     const statusSpan = document.getElementById('chatStatus');
@@ -994,14 +997,28 @@
     document.getElementById('messageInput')?.addEventListener('input', () => { if (typingTimeout) clearTimeout(typingTimeout); sendTyping(); typingTimeout = setTimeout(() => {}, 1000); });
 
     async function loadChatsAndGroups() {
+        // Загружаем сохранённые диалоги из localStorage
+        const savedChats = localStorage.getItem('echo_chats');
+        if (savedChats) {
+            chats = JSON.parse(savedChats);
+        }
+        
+        // Обновляем данные с сервера (аватарки, статусы)
         const resChats = await fetch(`/api/chats/${myId}`);
         const serverChats = await resChats.json();
         serverChats.forEach(sc => {
             const existing = chats.find(c => c.id === sc.id);
-            if (existing) { existing.avatar = sc.avatar; existing.display_name = sc.display_name; }
-            else chats.push(sc);
+            if (existing) {
+                existing.avatar = sc.avatar;
+                existing.display_name = sc.display_name;
+                existing.username = sc.username;
+                existing.is_online = sc.is_online;
+            } else {
+                chats.push(sc);
+            }
         });
         localStorage.setItem('echo_chats', JSON.stringify(chats));
+        
         const resGroups = await fetch('/api/groups');
         const allGroups = await resGroups.json();
         groupsList = allGroups.filter(g => g.members?.includes(myId) || g.created_by === myId);
@@ -1021,6 +1038,7 @@
             </div>`;
         }
         chatsContainer.innerHTML = chatsHtml || '<div style="padding:20px; text-align:center;">Нет диалогов</div>';
+        
         let groupsHtml = '';
         for (let group of groupsList) {
             const unread = unreadCounts[group.id] ? `<span class="unread-badge">${unreadCounts[group.id]}</span>` : '';
@@ -1098,7 +1116,20 @@
 
     async function deleteForMe(messageId) { await fetch(`/api/messages/${messageId}/for-me?user_id=${myId}`, { method: 'DELETE' }); document.querySelector(`.message[data-id='${messageId}']`)?.remove(); }
     async function deleteForEveryone(messageId) { if (!confirm('Удалить сообщение у всех?')) return; await fetch(`/api/messages/${messageId}/for-everyone?user_id=${myId}`, { method: 'DELETE' }); document.querySelector(`.message[data-id='${messageId}']`)?.remove(); }
-    async function deleteChat(chatId) { if (!confirm('Удалить всю переписку?')) return; await fetch(`/api/chats/${chatId}?user_id=${myId}`, { method: 'DELETE' }); chats = chats.filter(c => c.id !== chatId); localStorage.setItem('echo_chats', JSON.stringify(chats)); renderChatsAndGroups(); if (selectedChatId === chatId) { selectedChatId = null; document.getElementById('welcomeScreen').style.display = 'flex'; document.getElementById('messagesArea').style.display = 'none'; document.getElementById('inputArea').style.display = 'none'; document.getElementById('chatHeader').style.display = 'none'; } }
+    async function deleteChat(chatId) {
+        if (!confirm('Удалить всю переписку?')) return; 
+        await fetch(`/api/chats/${chatId}?user_id=${myId}`, { method: 'DELETE' }); 
+        chats = chats.filter(c => c.id !== chatId); 
+        localStorage.setItem('echo_chats', JSON.stringify(chats)); 
+        renderChatsAndGroups(); 
+        if (selectedChatId === chatId) { 
+            selectedChatId = null; 
+            document.getElementById('welcomeScreen').style.display = 'flex'; 
+            document.getElementById('messagesArea').style.display = 'none'; 
+            document.getElementById('inputArea').style.display = 'none'; 
+            document.getElementById('chatHeader').style.display = 'none'; 
+        } 
+    }
     async function deleteGroup(groupId) { if (!confirm('Удалить группу?')) return; await fetch(`/api/groups/${groupId}?user_id=${myId}`, { method: 'DELETE' }); loadChatsAndGroups(); }
     async function banUser(username) { if (!confirm(`Забанить пользователя ${username}?`)) return; const res = await fetch('/api/ban', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target_username: username, admin_id: myId }) }); if (res.ok) alert(`✅ Пользователь ${username} забанен`); else alert('❌ Ошибка бана'); }
 
@@ -1130,7 +1161,11 @@
     });
     async function startChatWithUser(userId, displayName) {
         const existing = chats.find(c => c.id === userId);
-        if (!existing) { chats.unshift({ id: userId, display_name: displayName, username: users[userId]?.username }); localStorage.setItem('echo_chats', JSON.stringify(chats)); renderChatsAndGroups(); }
+        if (!existing) { 
+            chats.unshift({ id: userId, display_name: displayName, username: users[userId]?.username, avatar: users[userId]?.avatar }); 
+            localStorage.setItem('echo_chats', JSON.stringify(chats)); 
+            renderChatsAndGroups(); 
+        }
         selectChat(userId, 'user');
         document.getElementById('searchResults').style.display = 'none';
         document.getElementById('searchInput').value = '';
