@@ -1458,6 +1458,28 @@
     initEmojiPicker();
     checkAutoLogin();
     document.getElementById('messageInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
+function showEmojiPicker() { 
+    const modal = document.getElementById('emojiModal');
+    if (modal) {
+        modal.classList.add('active');
+        if (document.getElementById('emojiPicker').innerHTML === '') {
+            showEmojiCategory('smileys');
+        }
+    } else {
+        console.error('emojiModal not found');
+    }
+}
+
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+}
+
+if (typeof initEmojiPicker === 'function') {
+    initEmojiPicker();
+} else {
+    console.error('initEmojiPicker not defined');
+}
 </script>
 </body>
 </html>
