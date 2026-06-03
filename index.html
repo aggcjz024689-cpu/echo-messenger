@@ -71,6 +71,7 @@
             flex-shrink: 0;
             transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             z-index: 100;
+            position: relative;
         }
 
         @media (max-width: 768px) {
@@ -88,6 +89,22 @@
             }
             .chat-area { width: 100%; }
             .menu-toggle { display: block !important; }
+        }
+
+        .sidebar-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-close { display: block; }
         }
 
         .menu-toggle {
@@ -178,6 +195,17 @@
             color: #888;
             padding: 12px 16px 6px 16px;
             letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-group-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #9147ff;
         }
 
         .chats-list {
@@ -299,7 +327,7 @@
             gap: 8px;
         }
 
-        .call-btn {
+        .call-btn, .settings-btn {
             background: #2a2a2e;
             border: none;
             color: white;
@@ -309,7 +337,7 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        body.light .call-btn { background: #e4e6eb; color: #050505; }
+        body.light .call-btn, body.light .settings-btn { background: #e4e6eb; color: #050505; }
 
         .messages-area {
             flex: 1;
@@ -490,6 +518,7 @@
             padding: 24px;
             width: 90%;
             max-width: 380px;
+            position: relative;
         }
 
         .modal-content input,
@@ -515,6 +544,23 @@
             font-weight: bold;
             cursor: pointer;
         }
+
+        .settings-menu {
+            width: 100%;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 0;
+            border-bottom: 1px solid #2a2a2e;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        body.light .settings-item { border-bottom-color: #e4e6eb; }
+        .settings-item:hover { opacity: 0.8; }
+        .settings-icon { font-size: 22px; width: 32px; }
 
         .emoji-picker {
             display: flex;
@@ -640,6 +686,7 @@
 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
 
 <div class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
     <div class="sidebar-header">
         <div class="user-info" onclick="openProfileModal()">
             <div class="avatar" id="myAvatar">👤</div>
@@ -649,7 +696,7 @@
             </div>
         </div>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Поиск..." class="search-input">
+            <input type="text" id="searchInput" placeholder="Поиск..." class="search-input" value="">
             <div id="searchResults" class="search-results"></div>
         </div>
     </div>
@@ -657,7 +704,10 @@
     <div class="section-title">ДИАЛОГИ</div>
     <div class="chats-list" id="chatsList"></div>
 
-    <div class="section-title">ГРУППЫ</div>
+    <div class="section-title">
+        ГРУППЫ
+        <button class="add-group-btn" onclick="showCreateGroupModal()">+</button>
+    </div>
     <div class="chats-list" id="groupsList"></div>
 </div>
 
@@ -672,7 +722,7 @@
             <button class="call-btn" onclick="startCall(false)">📞</button>
             <button class="call-btn" onclick="startCall(true)">📹</button>
         </div>
-        <button class="call-btn" onclick="showChatMenu()" style="background:#2a2a2e;">⋯</button>
+        <button class="settings-btn" onclick="openSettingsModal()">⚙️</button>
     </div>
 
     <div id="welcomeScreen" class="messages-area" style="justify-content: center; align-items: center; color: #888; text-align: center;">
@@ -693,6 +743,48 @@
     <div id="replyIndicator" class="reply-indicator">
         <span>Ответ на: <span id="replyText"></span></span>
         <button onclick="cancelReply()" style="background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+</div>
+
+<!-- Модальное окно настроек (Telegram-менюшка) -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content settings-menu">
+        <div class="settings-item" onclick="openProfileModal(); closeModal('settingsModal');">
+            <div class="settings-icon">👤</div>
+            <div>Мой профиль</div>
+        </div>
+        <div class="settings-item" onclick="alert('Кошелёк в разработке'); closeModal('settingsModal');">
+            <div class="settings-icon">💰</div>
+            <div>Кошелёк</div>
+        </div>
+        <div class="settings-item" onclick="showCreateGroupModal(); closeModal('settingsModal');">
+            <div class="settings-icon">➕</div>
+            <div>Создать группу</div>
+        </div>
+        <div class="settings-item" onclick="alert('Создание канала в разработке'); closeModal('settingsModal');">
+            <div class="settings-icon">📢</div>
+            <div>Создать канал</div>
+        </div>
+        <div class="settings-item" onclick="showContacts(); closeModal('settingsModal');">
+            <div class="settings-icon">📋</div>
+            <div>Контакты</div>
+        </div>
+        <div class="settings-item" onclick="showCallsHistory(); closeModal('settingsModal');">
+            <div class="settings-icon">📞</div>
+            <div>Звонки</div>
+        </div>
+        <div class="settings-item" onclick="showSavedMessages(); closeModal('settingsModal');">
+            <div class="settings-icon">⭐</div>
+            <div>Избранное</div>
+        </div>
+        <div class="settings-item" onclick="toggleTheme(); closeModal('settingsModal');">
+            <div class="settings-icon">🌙</div>
+            <div>Ночной режим</div>
+        </div>
+        <div class="settings-item" onclick="logout(); closeModal('settingsModal');">
+            <div class="settings-icon">🚪</div>
+            <div>Выйти</div>
+        </div>
     </div>
 </div>
 
@@ -741,6 +833,22 @@
         <button onclick="clearChat()" style="background:#ffaa00;">🗑 Очистить историю</button>
         <button onclick="exportChat()" style="background:#2a2a2e;">📎 Экспорт чата</button>
         <button onclick="closeModal('chatMenuModal')">Отмена</button>
+    </div>
+</div>
+
+<div id="contactsModal" class="modal">
+    <div class="modal-content">
+        <h3>📋 Контакты</h3>
+        <div id="contactsList" style="max-height: 400px; overflow-y: auto;"></div>
+        <button onclick="closeModal('contactsModal')">Закрыть</button>
+    </div>
+</div>
+
+<div id="callsModal" class="modal">
+    <div class="modal-content">
+        <h3>📞 История звонков</h3>
+        <div id="callsList" style="max-height: 400px; overflow-y: auto;"></div>
+        <button onclick="closeModal('callsModal')">Закрыть</button>
     </div>
 </div>
 
@@ -808,6 +916,7 @@
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none'; }
     function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').style.display = 'none'; }
+    function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); }
 
     // ==================== ТЕМА ====================
     function toggleTheme() {
@@ -933,6 +1042,9 @@
             localStorage.setItem('echo_display_name', myDisplayName);
             localStorage.setItem('echo_avatar_url', myAvatarUrl || '');
             localStorage.setItem('echo_is_admin', myIsAdmin);
+            // Сохраняем чаты из localStorage при логине
+            const savedChats = localStorage.getItem('echo_chats');
+            if (savedChats) chats = JSON.parse(savedChats);
             document.getElementById('authScreen').style.display = 'none';
             updateMyInfo();
             connectWebSocket();
@@ -953,6 +1065,8 @@
             myDisplayName = savedName;
             myAvatarUrl = savedAvatar || null;
             myIsAdmin = savedAdmin === 'true';
+            const savedChats = localStorage.getItem('echo_chats');
+            if (savedChats) chats = JSON.parse(savedChats);
             document.getElementById('authScreen').style.display = 'none';
             updateMyInfo();
             connectWebSocket();
@@ -975,6 +1089,12 @@
                 if (selectedChatId === data.from && selectedChatType === 'user') addMessageToChat(data.id, data.from, data.from_username, data.from_avatar, data.content, false, data.type2, data.timestamp);
                 else incrementUnread(data.from, data.from_username);
                 showNotification(data.from_username, data.content);
+                // Сохраняем диалог
+                if (!chats.find(c => c.id === data.from)) {
+                    chats.unshift({ id: data.from, display_name: data.from_username, username: data.from_username });
+                    localStorage.setItem('echo_chats', JSON.stringify(chats));
+                    renderChatsAndGroups();
+                }
             } else if (data.type === 'group_message') {
                 if (selectedChatId === data.group_id && selectedChatType === 'group') addMessageToChat(data.id, data.from, data.from_username, data.from_avatar, data.content, false, data.type2, data.timestamp);
                 else incrementUnread(data.group_id, data.from_username, true);
@@ -1004,7 +1124,11 @@
     // ==================== ДИАЛОГИ И ГРУППЫ ====================
     async function loadChatsAndGroups() {
         const resChats = await fetch(`/api/chats/${myId}`);
-        chats = await resChats.json();
+        const serverChats = await resChats.json();
+        // Объединяем с сохранёнными чатами
+        serverChats.forEach(sc => { if (!chats.find(c => c.id === sc.id)) chats.push(sc); });
+        localStorage.setItem('echo_chats', JSON.stringify(chats));
+        
         const resGroups = await fetch('/api/groups');
         const allGroups = await resGroups.json();
         groupsList = allGroups.filter(g => g.members?.includes(myId) || g.created_by === myId);
@@ -1102,8 +1226,8 @@
     // ==================== УДАЛЕНИЕ ====================
     async function deleteForMe(messageId) { await fetch(`/api/messages/${messageId}/for-me?user_id=${myId}`, { method: 'DELETE' }); document.querySelector(`.message[data-id='${messageId}']`)?.remove(); }
     async function deleteForEveryone(messageId) { if (!confirm('Удалить сообщение у всех?')) return; await fetch(`/api/messages/${messageId}/for-everyone?user_id=${myId}`, { method: 'DELETE' }); document.querySelector(`.message[data-id='${messageId}']`)?.remove(); }
-    async function deleteChat(chatId) { if (!confirm('Удалить всю переписку?')) return; await fetch(`/api/chats/${chatId}?user_id=${myId}`, { method: 'DELETE' }); location.reload(); }
-    async function deleteGroup(groupId) { if (!confirm('Удалить группу?')) return; await fetch(`/api/groups/${groupId}?user_id=${myId}`, { method: 'DELETE' }); location.reload(); }
+    async function deleteChat(chatId) { if (!confirm('Удалить всю переписку?')) return; await fetch(`/api/chats/${chatId}?user_id=${myId}`, { method: 'DELETE' }); chats = chats.filter(c => c.id !== chatId); localStorage.setItem('echo_chats', JSON.stringify(chats)); renderChatsAndGroups(); if (selectedChatId === chatId) { selectedChatId = null; document.getElementById('welcomeScreen').style.display = 'flex'; document.getElementById('messagesArea').style.display = 'none'; document.getElementById('inputArea').style.display = 'none'; document.getElementById('chatHeader').style.display = 'none'; } }
+    async function deleteGroup(groupId) { if (!confirm('Удалить группу?')) return; await fetch(`/api/groups/${groupId}?user_id=${myId}`, { method: 'DELETE' }); loadChatsAndGroups(); }
     async function banUser(username) { if (!confirm(`Забанить пользователя ${username}?`)) return; const res = await fetch('/api/ban', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target_username: username, admin_id: myId }) }); if (res.ok) alert(`✅ Пользователь ${username} забанен`); else alert('❌ Ошибка бана'); }
 
     // ==================== ОТПРАВКА ====================
@@ -1136,7 +1260,7 @@
     });
     async function startChatWithUser(userId, displayName) {
         const existing = chats.find(c => c.id === userId);
-        if (!existing) { chats.unshift({ id: userId, display_name: displayName, username: users[userId]?.username }); renderChatsAndGroups(); }
+        if (!existing) { chats.unshift({ id: userId, display_name: displayName, username: users[userId]?.username }); localStorage.setItem('echo_chats', JSON.stringify(chats)); renderChatsAndGroups(); }
         selectChat(userId, 'user');
         document.getElementById('searchResults').style.display = 'none';
         document.getElementById('searchInput').value = '';
@@ -1159,6 +1283,48 @@
         if (!name) { alert('Введите название группы'); return; }
         const res = await fetch('/api/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, members }) });
         if (res.ok) { closeModal('createGroupModal'); loadChatsAndGroups(); alert('✅ Группа создана'); } else alert('❌ Ошибка создания группы');
+    }
+
+    // ==================== КОНТАКТЫ ====================
+    async function showContacts() {
+        const res = await fetch('/api/users');
+        const usersList = await res.json();
+        const container = document.getElementById('contactsList');
+        let html = '';
+        for (let u of usersList) {
+            if (u.id !== myId) {
+                html += `<div style="padding: 12px; border-bottom: 1px solid #2a2a2e; display: flex; align-items: center; gap: 12px;">
+                    ${renderAvatar(u.avatar, u.display_name, 'avatar')}
+                    <div><strong>${escapeHtml(u.display_name)}</strong><br><small>${escapeHtml(u.username)}</small></div>
+                </div>`;
+            }
+        }
+        container.innerHTML = html || '<div style="padding:20px; text-align:center;">Нет контактов</div>';
+        document.getElementById('contactsModal').classList.add('active');
+        closeSidebar();
+    }
+
+    // ==================== ИСТОРИЯ ЗВОНКОВ ====================
+    async function showCallsHistory() {
+        const res = await fetch(`/api/calls/${myId}`);
+        const calls = await res.json();
+        const container = document.getElementById('callsList');
+        if (calls.length === 0) container.innerHTML = '<div style="padding:20px; text-align:center;">Нет звонков</div>';
+        else container.innerHTML = calls.map(c => `<div style="padding:10px; border-bottom:1px solid #2a2a2e;">📞 ${c.type === 'outgoing' ? 'Исходящий' : 'Входящий'} — ${new Date(c.timestamp).toLocaleString()}</div>`).join('');
+        document.getElementById('callsModal').classList.add('active');
+        closeSidebar();
+    }
+
+    // ==================== ИЗБРАННОЕ ====================
+    function showSavedMessages() {
+        const container = document.getElementById('callsList');
+        if (container) {
+            let html = '';
+            for (let id in savedMessages) html += `<div style="padding:10px; border-bottom:1px solid #2a2a2e;" onclick="alert('${escapeHtml(savedMessages[id])}')">${escapeHtml(savedMessages[id].substring(0, 100))}...</div>`;
+            container.innerHTML = html || '<div style="padding:20px; text-align:center;">Нет сохранённых сообщений</div>';
+            document.getElementById('callsModal').classList.add('active');
+        }
+        closeSidebar();
     }
 
     // ==================== ФАЙЛЫ ====================
