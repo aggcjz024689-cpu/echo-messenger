@@ -64,6 +64,7 @@ class CreateGroup(BaseModel):
 # ========== ГЛОБАЛЬНЫЕ ХРАНИЛИЩА ==========
 active_connections = {}
 online_users = {}
+calls_history = []
 
 def get_avatar_color(name: str) -> str:
     colors = ['#9147ff', '#ff6b6b', '#4ade80', '#fbbf24', '#60a5fa', '#f472b6', '#34d399', '#a78bfa']
@@ -121,7 +122,6 @@ async def init_db():
         )
     ''')
     
-    # Таблица для скрытых сообщений (для себя)
     await conn.execute('''
         CREATE TABLE IF NOT EXISTS hidden_messages (
             message_id TEXT,
@@ -130,7 +130,6 @@ async def init_db():
         )
     ''')
     
-    # Добавляем поле avatar если его нет
     await conn.execute('''
         DO $$ 
         BEGIN 
@@ -141,7 +140,6 @@ async def init_db():
         END $$;
     ''')
     
-    # Создаём админа
     admin = await conn.fetchrow("SELECT * FROM users WHERE username = '@admin'")
     if not admin:
         admin_id = secrets.token_urlsafe(16)
@@ -158,6 +156,7 @@ async def init_db():
 @app.on_event("startup")
 async def startup():
     await init_db()
+
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     with open("index.html", "r", encoding="utf-8") as f:
@@ -269,6 +268,7 @@ async def update_profile(user_id: str, profile: UpdateProfile):
     await conn.execute("UPDATE users SET display_name = $1, bio = $2 WHERE id = $3", profile.display_name, profile.bio, user_id)
     await conn.close()
     return {"success": True}
+
 # ========== БАН ==========
 @app.post("/api/ban")
 async def ban_user(ban: BanUser):
@@ -314,6 +314,11 @@ async def get_chats(user_id: str):
             if other:
                 chats.append(dict(other))
     return chats
+
+@app.get("/api/calls/{user_id}")
+async def get_calls_history(user_id: str):
+    user_calls = [c for c in calls_history if c.get('from_user_id') == user_id or c.get('to_user_id') == user_id]
+    return sorted(user_calls, key=lambda x: x.get('timestamp', ''), reverse=True)[:50]
 
 # ========== СООБЩЕНИЯ ==========
 @app.get("/api/messages/{other_user_id}")
@@ -381,6 +386,7 @@ async def get_group_messages(group_id: str, limit: int = 100):
     rows = await conn.fetch("SELECT * FROM messages WHERE group_id = $1 ORDER BY created_at ASC LIMIT $2", group_id, limit)
     await conn.close()
     return [dict(r) for r in rows]
+
 # ========== WEBSOCKET ==========
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -458,13 +464,68 @@ async def websocket_endpoint(websocket: WebSocket):
                         "from": user_id
                     }))
             
-            elif msg_type in ['call_offer', 'call_answer', 'ice_candidate', 'call_end', 'call_reject']:
-                if 'to_user_id' in message and message['to_user_id'] in active_connections:
-                    await active_connections[message['to_user_id']].send_text(json.dumps({
-                        "type": msg_type,
+            elif msg_type == 'call_offer':
+                target = message.get('to_user_id') or message.get('group_id')
+                target_type = 'user' if 'to_user_id' in message else 'group'
+                
+                if target_type == 'user' and target in active_connections:
+                    await active_connections[target].send_text(json.dumps({
+                        "type": "call_offer",
                         "from": user_id,
                         "from_username": user['display_name'],
-                        **{k: v for k, v in message.items() if k not in ['type', 'to_user_id']}
+                        "offer": message['offer'],
+                        "is_video": message.get('is_video', False)
+                    }))
+                elif target_type == 'group' and target in groups_db:
+                    for member_id in groups_db[target]['members']:
+                        if member_id in active_connections and member_id != user_id:
+                            await active_connections[member_id].send_text(json.dumps({
+                                "type": "call_offer",
+                                "from": user_id,
+                                "from_username": user['display_name'],
+                                "group_id": target,
+                                "offer": message['offer'],
+                                "is_video": message.get('is_video', False)
+                            }))
+            
+            elif msg_type == 'call_answer':
+                if message['to_user_id'] in active_connections:
+                    await active_connections[message['to_user_id']].send_text(json.dumps({
+                        "type": "call_answer",
+                        "from": user_id,
+                        "answer": message['answer']
+                    }))
+            
+            elif msg_type == 'ice_candidate':
+                if message['to_user_id'] in active_connections:
+                    await active_connections[message['to_user_id']].send_text(json.dumps({
+                        "type": "ice_candidate",
+                        "from": user_id,
+                        "candidate": message['candidate']
+                    }))
+            
+            elif msg_type == 'call_end':
+                target = message.get('to_user_id') or message.get('group_id')
+                target_type = 'user' if 'to_user_id' in message else 'group'
+                
+                if target_type == 'user' and target in active_connections:
+                    await active_connections[target].send_text(json.dumps({
+                        "type": "call_end",
+                        "from": user_id
+                    }))
+                elif target_type == 'group' and target in groups_db:
+                    for member_id in groups_db[target]['members']:
+                        if member_id in active_connections and member_id != user_id:
+                            await active_connections[member_id].send_text(json.dumps({
+                                "type": "call_end",
+                                "from": user_id
+                            }))
+            
+            elif msg_type == 'call_reject':
+                if message['to_user_id'] in active_connections:
+                    await active_connections[message['to_user_id']].send_text(json.dumps({
+                        "type": "call_reject",
+                        "from": user_id
                     }))
                     
     except WebSocketDisconnect:
