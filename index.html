@@ -58,7 +58,7 @@
         body.light .reaction { background: #e4e6eb; }
         body.dark .reaction { background: #3a3a3e; }
         
-        body { font-family: Arial, sans-serif; height: 100vh; display: flex; flex-direction: column; transition: background 0.2s, color 0.2s; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; height: 100vh; display: flex; flex-direction: column; transition: background 0.2s, color 0.2s; }
         
         .auth-screen { padding: 20px; display: flex; flex-direction: column; justify-content: center; height: 100%; max-width: 400px; margin: 0 auto; }
         .auth-screen input, .auth-screen button { padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; }
@@ -66,14 +66,11 @@
         .auth-screen hr { margin: 15px 0; border-color: #2a2a2e; }
         
         .chat-screen { display: flex; flex-direction: column; height: 100%; }
-        .top-bar { display: flex; align-items: center; gap: 8px; padding: 12px; flex-wrap: wrap; background: #18181b; border-bottom: 1px solid #2a2a2e; }
-        body.light .top-bar { background: #ffffff; border-bottom: 1px solid #e4e6eb; }
+        .top-bar { display: flex; align-items: center; gap: 8px; padding: 12px; flex-wrap: wrap; }
         .menu-btn { background: #9147ff; border: none; color: white; font-size: 24px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
         .search-container { position: relative; flex: 1; min-width: 120px; }
-        .search-input { width: 100%; padding: 8px 12px; border-radius: 20px; border: none; outline: none; background: #2a2a2e; color: white; }
-        body.light .search-input { background: #f0f2f5; color: #050505; }
-        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: #1f1f23; border-radius: 12px; max-height: 300px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        body.light .search-results { background: #ffffff; border: 1px solid #e4e6eb; }
+        .search-input { width: 100%; padding: 8px 12px; border-radius: 20px; border: none; outline: none; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; border-radius: 12px; max-height: 300px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .search-result-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #2a2a2e; }
         .search-result-item:hover { background: #3a3a3e; }
         body.light .search-result-item { border-bottom-color: #e4e6eb; }
@@ -84,20 +81,68 @@
         .call-btn, .create-group-btn, .theme-btn, .profile-btn { background: #2a2a2e; border: none; color: white; font-size: 18px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; }
         body.light .call-btn, body.light .create-group-btn, body.light .theme-btn, body.light .profile-btn { background: #e4e6eb; color: #050505; }
         
-        .users-panel { position: fixed; left: 0; top: 0; width: 320px; height: 100%; transform: translateX(-100%); transition: transform 0.3s; z-index: 1000; overflow-y: auto; background: #1f1f23; }
-        body.light .users-panel { background: #ffffff; }
-        .users-panel.open { transform: translateX(0); }
-        .users-header { padding: 20px; border-bottom: 1px solid #2a2a2e; }
-        body.light .users-header { border-bottom-color: #e4e6eb; }
-        .section-title { font-size: 14px; color: #888; margin: 15px 0 5px 10px; }
-        .user-item, .group-item { padding: 12px 15px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2e; }
-        body.light .user-item, body.light .group-item { border-bottom-color: #e4e6eb; }
-        .user-name { font-weight: bold; font-size: 16px; }
-        .user-online { font-size: 12px; color: #4ade80; margin-top: 4px; }
-        .user-offline { font-size: 12px; color: #888; margin-top: 4px; }
-        .admin-badge { background: #ff4444; border-radius: 8px; padding: 2px 6px; font-size: 10px; }
-        .banned-badge { background: #555; border-radius: 8px; padding: 2px 6px; font-size: 10px; }
-        .unread-badge { background: #9147ff; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
+        /* Telegram-style боковое меню */
+        .sidebar-menu {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            z-index: 1000;
+            background: #1f1f23;
+            display: flex;
+            flex-direction: column;
+        }
+        body.light .sidebar-menu { background: #ffffff; }
+        .sidebar-menu.open { transform: translateX(0); }
+        
+        .sidebar-header {
+            padding: 30px 20px 20px;
+            border-bottom: 1px solid #2a2a2e;
+        }
+        body.light .sidebar-header { border-bottom-color: #e4e6eb; }
+        
+        .sidebar-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .sidebar-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .sidebar-username {
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .sidebar-item:hover { background: #2a2a2e; }
+        body.light .sidebar-item:hover { background: #e4e6eb; }
+        .sidebar-item-icon { font-size: 22px; width: 28px; }
+        .sidebar-item-text { font-size: 16px; }
+        
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #2a2a2e;
+        }
+        body.light .sidebar-footer { border-top-color: #e4e6eb; }
         
         .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #9147ff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: white; }
         .avatar-small { width: 32px; height: 32px; font-size: 14px; }
@@ -113,7 +158,6 @@
         .message-text { font-size: 14px; word-wrap: break-word; }
         .message-img { max-width: 200px; border-radius: 12px; cursor: pointer; margin-top: 5px; }
         .message-time { font-size: 10px; margin-top: 4px; text-align: right; }
-        .message-audio { max-width: 200px; }
         
         .message-actions { position: absolute; right: 0; top: -30px; background: #2a2a2e; border-radius: 8px; display: none; gap: 8px; padding: 4px 8px; z-index: 10; white-space: nowrap; }
         body.light .message-actions { background: #e4e6eb; }
@@ -124,7 +168,7 @@
         .reactions { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
         .reaction { border-radius: 12px; padding: 2px 6px; font-size: 12px; cursor: pointer; }
         
-        .input-panel { display: flex; padding: 12px; gap: 8px; background: #18181b; border-top: 1px solid #2a2a2e; position: sticky; bottom: 0; }
+        .input-panel { display: flex; padding: 12px; gap: 8px; position: sticky; bottom: 0; background: #18181b; border-top: 1px solid #2a2a2e; }
         body.light .input-panel { background: #ffffff; border-top: 1px solid #e4e6eb; }
         .input-panel input { flex: 1; padding: 10px; border-radius: 24px; border: none; outline: none; background: #2a2a2e; color: white; }
         body.light .input-panel input { background: #f0f2f5; color: #050505; }
@@ -159,7 +203,7 @@
         
         @media (max-width: 768px) {
             .message { max-width: 85%; }
-            .users-panel { width: 280px; }
+            .sidebar-menu { width: 280px; }
             .top-bar { gap: 4px; }
             .call-btn, .create-group-btn, .theme-btn, .profile-btn { width: 32px; height: 32px; font-size: 14px; }
             .message-actions { top: -25px; }
@@ -197,9 +241,9 @@
 
 <div id="chatScreen" style="display: none;" class="chat-screen">
     <div class="top-bar">
-        <button class="menu-btn" onclick="toggleUsers()">☰</button>
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Поиск пользователей..." class="search-input">
+            <input type="text" id="searchInput" placeholder="Поиск..." class="search-input">
             <div id="searchResults" class="search-results"></div>
         </div>
         <div class="chat-title" id="chatTitle">ЭХО</div>
@@ -208,8 +252,6 @@
             <button class="call-btn" onclick="startCall(false)">📞</button>
             <button class="call-btn" onclick="startCall(true)">📹</button>
         </div>
-        <button class="create-group-btn" onclick="showCreateGroupModal()">➕</button>
-        <button class="profile-btn" onclick="openAvatarModal()">👤</button>
         <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
     </div>
     
@@ -231,22 +273,47 @@
     </div>
 </div>
 
-<div id="usersPanel" class="users-panel">
-    <div class="users-header" id="myInfoHeader">
-        <div id="myInfo" style="display:flex; align-items:center; gap:12px;">
-            <div class="avatar" id="myAvatar">👤</div>
-            <div id="myName"></div>
-        </div>
-        <button onclick="openAvatarModal()" style="margin-top:10px; background:#9147ff; border:none; padding:5px 10px; border-radius:8px; cursor:pointer; width:100%;">📷 Сменить аватар</button>
-        <button onclick="showQRModal()" style="margin-top:5px; background:#2a2a2e; border:none; padding:5px 10px; border-radius:8px; cursor:pointer; width:100%;">📱 QR-вход</button>
-        <button onclick="logout()" style="margin-top:5px; background:#ff4444; border:none; padding:5px 10px; border-radius:8px; cursor:pointer; width:100%;">🚪 Выйти</button>
+<!-- Telegram-style боковое меню -->
+<div id="sidebarMenu" class="sidebar-menu">
+    <div class="sidebar-header">
+        <div class="sidebar-avatar" id="sidebarAvatar" onclick="openAvatarModal()">👤</div>
+        <div class="sidebar-name" id="sidebarName">Загрузка...</div>
+        <div class="sidebar-username" id="sidebarUsername">@username</div>
     </div>
-    <div class="section-title">📁 ДИАЛОГИ</div>
-    <div id="chatsList"></div>
-    <div class="section-title">⭐ ИЗБРАННОЕ</div>
-    <div id="savedList"></div>
+    <div class="sidebar-nav">
+        <div class="sidebar-item" onclick="openProfileModal()">
+            <div class="sidebar-item-icon">👤</div>
+            <div class="sidebar-item-text">Мой профиль</div>
+        </div>
+        <div class="sidebar-item" onclick="showContacts()">
+            <div class="sidebar-item-icon">📋</div>
+            <div class="sidebar-item-text">Контакты</div>
+        </div>
+        <div class="sidebar-item" onclick="showCreateGroupModal()">
+            <div class="sidebar-item-icon">➕</div>
+            <div class="sidebar-item-text">Создать группу</div>
+        </div>
+        <div class="sidebar-item" onclick="showCallsHistory()">
+            <div class="sidebar-item-icon">📞</div>
+            <div class="sidebar-item-text">Звонки</div>
+        </div>
+        <div class="sidebar-item" onclick="showSavedMessages()">
+            <div class="sidebar-item-icon">⭐</div>
+            <div class="sidebar-item-text">Избранное</div>
+        </div>
+        <div class="sidebar-item" onclick="openSettings()">
+            <div class="sidebar-item-icon">⚙️</div>
+            <div class="sidebar-item-text">Настройки</div>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="sidebar-item" onclick="logout()">
+            <div class="sidebar-item-icon">🚪</div>
+            <div class="sidebar-item-text">Выйти</div>
+        </div>
+    </div>
 </div>
-<div id="overlay" class="overlay" onclick="closeUsers()"></div>
+<div id="overlay" class="overlay" onclick="closeSidebar()"></div>
 
 <div id="createGroupModal" class="modal">
     <div class="modal-content">
@@ -296,6 +363,33 @@
     </div>
 </div>
 
+<div id="contactsModal" class="modal">
+    <div class="modal-content">
+        <h3>📋 Контакты</h3>
+        <div id="contactsList" style="max-height: 400px; overflow-y: auto;"></div>
+        <button onclick="closeModal('contactsModal')">Закрыть</button>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <h3>⚙️ Настройки</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0;">
+            <span>Тёмная тема</span>
+            <button onclick="toggleTheme()" id="settingsThemeBtn" style="width: auto; padding: 8px 16px;">🌙 Вкл</button>
+        </div>
+        <button onclick="closeModal('settingsModal')">Закрыть</button>
+    </div>
+</div>
+
+<div id="callsModal" class="modal">
+    <div class="modal-content">
+        <h3>📞 История звонков</h3>
+        <div id="callsList" style="max-height: 400px; overflow-y: auto;"></div>
+        <button onclick="closeModal('callsModal')">Закрыть</button>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
     let ws = null;
@@ -320,7 +414,6 @@
     let localStream = null;
     let isInCall = false;
     let isVideoCall = false;
-    let longPressTimer = null;
     
     const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '👎', '🎉', '🔥', '👀', '😍', '😱', '🤔', '🙏', '💩'];
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
@@ -336,6 +429,13 @@
         }
     }
     
+    function updateSidebarInfo() {
+        document.getElementById('sidebarName').innerText = myDisplayName || 'Пользователь';
+        document.getElementById('sidebarUsername').innerText = myUsername || '@username';
+        const avatarHtml = renderAvatar(myAvatarUrl, myDisplayName, 'sidebar-avatar');
+        document.getElementById('sidebarAvatar').innerHTML = avatarHtml;
+    }
+    
     function openAvatarModal() {
         const preview = document.getElementById('avatarPreview');
         if (myAvatarUrl) {
@@ -344,6 +444,7 @@
             preview.innerHTML = `<div style="width:100px;height:100px;border-radius:50%;background:#9147ff;display:flex;align-items:center;justify-content:center;font-size:36px;">${getAvatarInitials(myDisplayName)}</div>`;
         }
         document.getElementById('avatarModal').classList.add('active');
+        closeSidebar();
     }
     
     async function uploadAvatar() {
@@ -357,7 +458,7 @@
         if (data.avatar_url) {
             myAvatarUrl = data.avatar_url;
             localStorage.setItem('echo_avatar_url', myAvatarUrl);
-            updateMyInfo();
+            updateSidebarInfo();
             alert('✅ Аватар загружен');
             closeModal('avatarModal');
         } else alert('❌ Ошибка загрузки');
@@ -368,17 +469,9 @@
         if (res.ok) {
             myAvatarUrl = null;
             localStorage.removeItem('echo_avatar_url');
-            updateMyInfo();
+            updateSidebarInfo();
             alert('✅ Аватар удалён');
             closeModal('avatarModal');
-        }
-    }
-    
-    function updateMyInfo() {
-        const container = document.getElementById('myInfo');
-        if (container) {
-            const avatarHtml = renderAvatar(myAvatarUrl, myDisplayName, 'avatar');
-            container.innerHTML = `${avatarHtml}<div><strong>${escapeHtml(myDisplayName)}</strong><br><small>${escapeHtml(myUsername)}</small> 🟢</div>`;
         }
     }
     
@@ -389,10 +482,12 @@
             body.classList.remove('dark'); body.classList.add('light');
             localStorage.setItem('theme', 'light');
             document.getElementById('themeBtn').innerHTML = '☀️';
+            document.getElementById('settingsThemeBtn').innerHTML = '☀️ Выкл';
         } else {
             body.classList.remove('light'); body.classList.add('dark');
             localStorage.setItem('theme', 'dark');
             document.getElementById('themeBtn').innerHTML = '🌙';
+            document.getElementById('settingsThemeBtn').innerHTML = '🌙 Вкл';
         }
     }
     
@@ -401,6 +496,7 @@
         if (saved === 'light') {
             document.body.classList.remove('dark'); document.body.classList.add('light');
             document.getElementById('themeBtn').innerHTML = '☀️';
+            if (document.getElementById('settingsThemeBtn')) document.getElementById('settingsThemeBtn').innerHTML = '☀️ Выкл';
         }
     }
     
@@ -466,7 +562,7 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('chatScreen').style.display = 'flex';
             document.getElementById('profileDisplayName').value = myDisplayName;
-            updateMyInfo();
+            updateSidebarInfo();
             connectWebSocket();
             loadChats();
             loadTheme();
@@ -489,7 +585,7 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('chatScreen').style.display = 'flex';
             document.getElementById('profileDisplayName').value = myDisplayName;
-            updateMyInfo();
+            updateSidebarInfo();
             connectWebSocket();
             loadChats();
             loadTheme();
@@ -576,6 +672,7 @@
     
     function renderChats() {
         const container = document.getElementById('chatsList');
+        if (!container) return;
         let html = '';
         for (let chat of chats) {
             const isGroup = chat.is_group;
@@ -617,12 +714,18 @@
         document.getElementById('sendBtn').disabled = false;
         document.getElementById('messagesArea').innerHTML = '';
         if (pinnedMessages[id]) {
-            document.getElementById('pinnedMessage').style.display = 'block';
-            document.getElementById('pinnedMessage').innerHTML = `📌 Закреплено: ${escapeHtml(pinnedMessages[id].substring(0, 100))}`;
-        } else document.getElementById('pinnedMessage').style.display = 'none';
+            const pinnedDiv = document.getElementById('pinnedMessage');
+            if (pinnedDiv) {
+                pinnedDiv.style.display = 'block';
+                pinnedDiv.innerHTML = `📌 Закреплено: ${escapeHtml(pinnedMessages[id].substring(0, 100))}`;
+            }
+        } else {
+            const pinnedDiv = document.getElementById('pinnedMessage');
+            if (pinnedDiv) pinnedDiv.style.display = 'none';
+        }
         loadMessages();
-        closeUsers();
-        if (window.innerWidth <= 768) closeUsers();
+        closeSidebar();
+        if (window.innerWidth <= 768) closeSidebar();
     }
     
     async function loadMessages() {
@@ -638,14 +741,6 @@
             let senderAvatar = isMine ? myAvatarUrl : (users[m.from_user_id]?.avatar || null);
             addMessageToChat(m.id, m.from_user_id, senderName, senderAvatar, m.content, isMine, m.type || 'text', m.created_at);
         });
-    }
-    
-    function showMessageActions(div, msgId, fromId, content, isMine) {
-        let actions = div.querySelector('.message-actions');
-        if (actions) {
-            actions.style.display = 'flex';
-            setTimeout(() => { if (actions) actions.style.display = 'none'; }, 3000);
-        }
     }
     
     function addMessageToChat(msgId, fromId, username, avatar, content, isMine, type, timestamp) {
@@ -681,7 +776,6 @@
             </div>
         `;
         
-        // Долгое нажатие для показа меню (на телефоне)
         let pressTimer;
         div.addEventListener('touchstart', (e) => {
             pressTimer = setTimeout(() => {
@@ -691,7 +785,6 @@
         });
         div.addEventListener('touchend', () => { clearTimeout(pressTimer); });
         div.addEventListener('touchmove', () => { clearTimeout(pressTimer); });
-        // На ПК — при наведении с задержкой
         div.addEventListener('mouseenter', () => {
             setTimeout(() => {
                 let actions = div.querySelector('.message-actions');
@@ -743,7 +836,7 @@
         else alert('❌ Ошибка бана');
     }
     
-    // ========== ОТПРАВКА СООБЩЕНИЙ ==========
+    // ========== ОТПРАВКА ==========
     function sendMsg() {
         let input = document.getElementById('messageInput');
         let text = input.value.trim();
@@ -772,13 +865,16 @@
     function pinMessage(id, content) {
         if (selectedChatId) {
             pinnedMessages[selectedChatId] = content;
-            document.getElementById('pinnedMessage').style.display = 'block';
-            document.getElementById('pinnedMessage').innerHTML = `📌 Закреплено: ${escapeHtml(content.substring(0, 100))}`;
+            const pinnedDiv = document.getElementById('pinnedMessage');
+            if (pinnedDiv) {
+                pinnedDiv.style.display = 'block';
+                pinnedDiv.innerHTML = `📌 Закреплено: ${escapeHtml(content.substring(0, 100))}`;
+            }
             alert('📌 Сообщение закреплено');
         }
     }
     
-    // ========== ПОИСК ПОЛЬЗОВАТЕЛЕЙ ==========
+    // ========== ПОИСК ==========
     document.getElementById('searchInput').addEventListener('input', async (e) => {
         let q = e.target.value.trim();
         let resultsDiv = document.getElementById('searchResults');
@@ -815,6 +911,7 @@
             select.innerHTML += `<option value="${id}">${escapeHtml(users[id].display_name)} (${users[id].username})</option>`;
         }
         document.getElementById('createGroupModal').classList.add('active');
+        closeSidebar();
     }
     
     async function createGroup() {
@@ -835,6 +932,13 @@
     }
     
     // ========== ПРОФИЛЬ ==========
+    function openProfileModal() {
+        document.getElementById('profileDisplayName').value = myDisplayName;
+        document.getElementById('profileBio').value = '';
+        document.getElementById('profileModal').classList.add('active');
+        closeSidebar();
+    }
+    
     async function saveProfile() {
         let newName = document.getElementById('profileDisplayName').value.trim();
         let bio = document.getElementById('profileBio').value.trim();
@@ -847,9 +951,67 @@
         if (res.ok) {
             myDisplayName = newName;
             localStorage.setItem('echo_display_name', newName);
-            updateMyInfo();
+            updateSidebarInfo();
             closeModal('profileModal');
+            alert('✅ Профиль обновлён');
         }
+    }
+    
+    // ========== КОНТАКТЫ ==========
+    async function showContacts() {
+        const res = await fetch('/api/users');
+        const usersList = await res.json();
+        const container = document.getElementById('contactsList');
+        let html = '';
+        for (let u of usersList) {
+            if (u.id !== myId) {
+                html += `<div style="padding: 10px; border-bottom: 1px solid #2a2a2e; display: flex; align-items: center; gap: 12px;">
+                    ${renderAvatar(u.avatar, u.display_name, 'avatar-small')}
+                    <div><strong>${escapeHtml(u.display_name)}</strong><br><small>${escapeHtml(u.username)}</small></div>
+                </div>`;
+            }
+        }
+        container.innerHTML = html || '<div style="padding:20px; text-align:center;">Нет контактов</div>';
+        document.getElementById('contactsModal').classList.add('active');
+        closeSidebar();
+    }
+    
+    // ========== НАСТРОЙКИ ==========
+    function openSettings() {
+        const themeBtn = document.getElementById('settingsThemeBtn');
+        if (themeBtn) {
+            themeBtn.innerHTML = document.body.classList.contains('dark') ? '🌙 Вкл' : '☀️ Выкл';
+        }
+        document.getElementById('settingsModal').classList.add('active');
+        closeSidebar();
+    }
+    
+    // ========== ИСТОРИЯ ЗВОНКОВ ==========
+    async function showCallsHistory() {
+        const res = await fetch(`/api/calls/${myId}`);
+        const calls = await res.json();
+        const container = document.getElementById('callsList');
+        if (calls.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center;">Нет звонков</div>';
+        } else {
+            container.innerHTML = calls.map(c => `<div style="padding:10px; border-bottom:1px solid #2a2a2e;">
+                ${c.type === 'outgoing' ? '📞 Исходящий' : '📞 Входящий'} — ${new Date(c.timestamp).toLocaleString()}
+            </div>`).join('');
+        }
+        document.getElementById('callsModal').classList.add('active');
+        closeSidebar();
+    }
+    
+    // ========== ИЗБРАННОЕ ==========
+    function showSavedMessages() {
+        const container = document.getElementById('savedMessagesList');
+        if (!container) return;
+        container.innerHTML = '';
+        for (let id in savedMessages) {
+            container.innerHTML += `<div class="saved-message-item" onclick="alert('${escapeHtml(savedMessages[id])}')">${escapeHtml(savedMessages[id].substring(0, 100))}...</div>`;
+        }
+        document.getElementById('savedModal').classList.add('active');
+        closeSidebar();
     }
     
     // ========== QR-КОД ==========
@@ -858,6 +1020,7 @@
         let url = window.location.href;
         new QRCode(canvas, { text: url, width: 200, height: 200 });
         document.getElementById('qrModal').classList.add('active');
+        closeSidebar();
     }
     
     // ========== ГОЛОСОВЫЕ ==========
@@ -1005,13 +1168,24 @@
     }
     
     // ========== UI ==========
-    function toggleUsers() { document.getElementById('usersPanel').classList.toggle('open'); document.getElementById('overlay').style.display = document.getElementById('usersPanel').classList.contains('open') ? 'block' : 'none'; }
-    function closeUsers() { document.getElementById('usersPanel').classList.remove('open'); document.getElementById('overlay').style.display = 'none'; }
+    function toggleSidebar() {
+        document.getElementById('sidebarMenu').classList.toggle('open');
+        document.getElementById('overlay').style.display = document.getElementById('sidebarMenu').classList.contains('open') ? 'block' : 'none';
+    }
+    function closeSidebar() {
+        document.getElementById('sidebarMenu').classList.remove('open');
+        document.getElementById('overlay').style.display = 'none';
+    }
     function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[m]) || ''; }
     
     initEmojiPicker();
     checkAutoLogin();
     document.addEventListener('keypress', e => { if (e.target.id === 'messageInput' && e.key === 'Enter') sendMsg(); });
+    window.openSettings = openSettings;
+    window.showCallsHistory = showCallsHistory;
+    window.showSavedMessages = showSavedMessages;
+    window.showContacts = showContacts;
+    window.openProfileModal = openProfileModal;
 </script>
 </body>
 </html>
