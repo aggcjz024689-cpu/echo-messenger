@@ -573,6 +573,41 @@ async def broadcast_users_list():
             await conn_ws.send_text(status_msg)
         except:
             pass
+@app.delete("/api/groups/{group_id}")
+async def delete_group(group_id: str, user_id: str):
+    conn = await asyncpg.connect(DATABASE_URL)
+    
+    # Проверяем, существует ли группа
+    group = await conn.fetchrow("SELECT * FROM groups WHERE id = $1", group_id)
+    if not group:
+        await conn.close()
+        raise HTTPException(404, "Группа не найдена")
+    
+    # Проверяем, является ли пользователь создателем группы
+    if group['created_by'] != user_id:
+        await conn.close()
+        raise HTTPException(403, "Только создатель группы может удалить её")
+    
+    # Удаляем всех участников группы
+    await conn.execute("DELETE FROM group_members WHERE group_id = $1", group_id)
+    
+    # Удаляем все сообщения группы
+    await conn.execute("DELETE FROM messages WHERE group_id = $1", group_id)
+    
+    # Удаляем саму группу
+    await conn.execute("DELETE FROM groups WHERE id = $1", group_id)
+    
+    await conn.close()
+    
+    # Уведомляем всех участников об удалении группы
+    for member_id in group['members']:
+        if member_id in active_connections:
+            await active_connections[member_id].send_text(json.dumps({
+                "type": "group_deleted",
+                "group_id": group_id
+            }))
+    
+    return {"success": True}
 
 if __name__ == "__main__":
     import uvicorn
