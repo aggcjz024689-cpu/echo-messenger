@@ -447,6 +447,35 @@
             align-items: center;
             gap: 8px;
         }
+/* Горизонтальное расположение эмодзи */
+#emojiPicker {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#emojiPicker .emoji {
+    display: inline-flex !important;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background 0.1s;
+}
+
+#emojiPicker .emoji:hover {
+    background: #3a3a3e;
+}
+
+body.light #emojiPicker .emoji:hover {
+    background: #e4e6eb;
+}
         body.light .reply-indicator { background: #e4e6eb; }
 
         .modal {
