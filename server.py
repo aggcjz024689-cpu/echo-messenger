@@ -608,6 +608,9 @@ async def delete_group(group_id: str, user_id: str):
             }))
     
     return {"success": True}
+@app.get("/ping")
+async def ping():
+    return "ok"
 
 if __name__ == "__main__":
     import uvicorn
