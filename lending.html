@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Скачать ЭХО — мессенджер для Windows</title>
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/aggcjz024689-cpu/echo-messenger/main/icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ededef;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 0 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #fff, #9147ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .hero h2 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .hero p {
+            color: #a0a0b0;
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .download-section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 32px;
+            padding: 40px;
+            margin: 40px 0;
+        }
+
+        .download-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .download-desc {
+            color: #a0a0b0;
+            margin-bottom: 24px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #9147ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #b07cff;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin: 40px 0;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 24px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .feature h4 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .feature p {
+            color: #a0a0b0;
+            font-size: 14px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: #6a6a7a;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 32px;
+            }
+            .btn-group {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/aggcjz024689-cpu/echo-messenger/main/icon.png" alt="ЭХО">
+                <h1>ЭХО Мессенджер</h1>
+            </div>
+        </div>
+
+        <div class="hero">
+            <h2>📥 Скачать ЭХО для Windows</h2>
+            <p>Бесплатный мессенджер с групповыми чатами, звонками и шифрованием</p>
+        </div>
+
+        <div class="download-section">
+            <div class="download-title">🪟 Установщик Windows</div>
+            <div class="download-desc">Скачайте и запустите установщик. Программа будет установлена в Program Files, создаст ярлык на рабочем столе и в меню Пуск.</div>
+            <div class="btn-group">
+                <a href="https://github.com/aggcjz024689-cpu/echo-messenger/releases/download/v1.0/installer.bat" class="btn btn-primary">📦 Скачать installer.bat</a>
+                <a href="https://github.com/aggcjz024689-cpu/echo-messenger/releases/download/v1.0/installer.zip" class="btn btn-secondary">🗜 Скачать ZIP (все файлы)</a>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">💬</div>
+                <h4>Групповые чаты</h4>
+                <p>Общайтесь в группах до 500 человек</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📹</div>
+                <h4>Видеозвонки</h4>
+                <p>Чёткие звонки до 10 участников</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h4>Безопасность</h4>
+                <p>Ваши данные под защитой</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+                <h4>Тёмная тема</h4>
+                <p>Комфортный режим для глаз</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 ЭХО Мессенджер | <a href="https://github.com/aggcjz024689-cpu/echo-messenger" style="color:#9147ff;">GitHub</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Проверка: если открыто на телефоне или в WebView — показываем предупреждение
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isWebView = /; wv\)/i.test(navigator.userAgent);
+        
+        if (isMobile || isWebView) {
+            document.body.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#0a0a0f; color:white; text-align:center; padding:20px;">
+                    <div>
+                        <h1 style="font-size:28px; margin-bottom:16px;">📱 ЭХО для ПК</h1>
+                        <p style="color:#a0a0b0; margin-bottom:24px;">Это приложение предназначено только для компьютеров Windows.<br>Скачайте установщик на ПК.</p>
+                        <a href="https://echo-messenger-wko2.onrender.com" style="color:#9147ff;">👉 Открыть веб-версию</a>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

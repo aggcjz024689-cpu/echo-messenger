@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>ЭХО — мессенджер</title>
-    <link rel="icon" type="image/x-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/aggcjz024689-cpu/echo-messenger/main/icon.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -797,6 +797,12 @@
                 <div class="user-name" id="myDisplayName">Загрузка...</div>
                 <div class="user-username" id="myUsername">@username</div>
             </div>
+            <!-- Баннер для ПК-пользователей (только в браузере, не в приложении) -->
+            <div id="pcBanner" style="margin: 16px; padding: 16px; background: linear-gradient(135deg, #9147ff, #6a2bc3); border-radius: 16px; text-align: center; cursor: pointer;" onclick="window.open('/landing', '_blank')">
+              <div style="font-size: 24px; margin-bottom: 8px;">📥</div>
+              <div style="font-weight: bold; margin-bottom: 4px;">Скачай ЭХО на ПК</div>
+              <div style="font-size: 12px; opacity: 0.9;">Установи приложение за минуту</div>
+        </div>
         </div>
         <button class="change-avatar-btn" onclick="openAvatarModal()">📷 Сменить аватар</button>
         <div class="search-container">
@@ -1611,6 +1617,12 @@ document.getElementById('overlay')?.addEventListener('click', closeSidebar);
     initEmojiPicker();
     checkAutoLogin();
     document.getElementById('messageInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
+
+    // Скрыть баннер, если открыто в приложении (WebView)
+    if (/; wv\)/i.test(navigator.userAgent) || navigator.userAgent.includes('Electron')) {
+       const banner = document.getElementById('pcBanner');
+       if (banner) banner.style.display = 'none';
+    }
 </script>
 </body>
 </html>
