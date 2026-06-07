@@ -1,0 +1,46 @@
+name: Build EchoMessenger EXE
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install MSVC (Visual Studio)
+      uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Download WebView2 SDK
+      run: |
+        curl -L -o webview2.zip https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.2903.40
+        unzip webview2.zip -d webview2
+        copy webview2\build\native\include\WebView2.h .
+        copy webview2\build\native\x64\WebView2Loader.dll .
+    
+    - name: Download wil
+      run: |
+        curl -L -o wil.zip https://github.com/microsoft/wil/archive/refs/heads/master.zip
+        unzip wil.zip -d wil-temp
+        move wil-temp\wil-master\include\wil .
+    
+    - name: Compile resource file
+      run: |
+        rc icon.rc
+    
+    - name: Compile EXE
+      run: |
+        cl /EHsc /std:c++17 main.cpp icon.res /link user32.lib ole32.lib shell32.lib gdi32.lib
+    
+    - name: Upload EXE
+      uses: actions/upload-artifact@v4
+      with:
+        name: EchoMessenger
+        path: |
+          main.exe
+          WebView2Loader.dll
