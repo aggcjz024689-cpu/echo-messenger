@@ -13,11 +13,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: List files
-      run: dir
-    
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Prepare include folder
+      run: |
+        mkdir include
+        copy WebView2.h include\
     
     - name: Compile resource file
       run: |
@@ -25,7 +27,7 @@ jobs:
     
     - name: Compile EXE
       run: |
-        cl /EHsc /std:c++17 main.cpp icon.res /link user32.lib ole32.lib shell32.lib gdi32.lib
+        cl /EHsc /std:c++17 /Iinclude main.cpp icon.res /link user32.lib ole32.lib shell32.lib gdi32.lib
     
     - name: Upload EXE
       uses: actions/upload-artifact@v4
