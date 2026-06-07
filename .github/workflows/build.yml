@@ -13,6 +13,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: List files
+      run: dir
+    
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
