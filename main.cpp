@@ -1,15 +1,18 @@
 #define UNICODE
 #define _UNICODE
 #include <windows.h>
-#include <wil/com.h>
 #include <WebView2.h>
 #include <objbase.h>
+#include <wrl/client.h>
+#include <wrl/event.h>
 
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "shell32.lib")
 
-static wil::com_ptr<ICoreWebView2> webview;
-static wil::com_ptr<ICoreWebView2Controller> controller;
+using namespace Microsoft::WRL;
+
+static ComPtr<ICoreWebView2> webview;
+static ComPtr<ICoreWebView2Controller> controller;
 static HWND mainHwnd = nullptr;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -61,18 +64,14 @@ HWND CreateMainWindow(HINSTANCE hInstance, int nCmdShow) {
 void InitializeWebView2(HWND hwnd) {
     CreateCoreWebView2EnvironmentWithOptions(
         nullptr, nullptr, nullptr,
-        Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [hwnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
                 env->CreateCoreWebView2Controller(
                     hwnd,
-                    Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                        [hwnd](HRESULT result, ICoreWebView2Controller* ctrl) -> HRESULT {
+                    Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                        [](HRESULT result, ICoreWebView2Controller* ctrl) -> HRESULT {
                             controller = ctrl;
                             controller->get_CoreWebView2(&webview);
-                            
-                            RECT bounds;
-                            GetClientRect(hwnd, &bounds);
-                            controller->put_Bounds(bounds);
                             
                             webview->Navigate(L"https://echo-messenger-wko2.onrender.com");
                             return S_OK;
