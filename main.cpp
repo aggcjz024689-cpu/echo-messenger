@@ -1,3 +1,5 @@
+#define UNICODE
+#define _UNICODE
 #include <windows.h>
 #include <wil/com.h>
 #include <WebView2.h>
@@ -33,16 +35,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 HWND CreateMainWindow(HINSTANCE hInstance, int nCmdShow) {
     const wchar_t CLASS_NAME[] = L"EchoMessengerWindow";
     
-    WNDCLASS wc = {};
+    WNDCLASSW wc = {};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(101));
+    wc.hIcon = LoadIconW(hInstance, MAKEINTRESOURCE(101));
     wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     
-    RegisterClass(&wc);
+    RegisterClassW(&wc);
     
-    HWND hwnd = CreateWindowEx(
+    HWND hwnd = CreateWindowExW(
         0, CLASS_NAME, L"ЭХО Мессенджер",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT, 1200, 800,
@@ -59,11 +61,11 @@ HWND CreateMainWindow(HINSTANCE hInstance, int nCmdShow) {
 void InitializeWebView2(HWND hwnd) {
     CreateCoreWebView2EnvironmentWithOptions(
         nullptr, nullptr, nullptr,
-        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+        Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [hwnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
                 env->CreateCoreWebView2Controller(
                     hwnd,
-                    Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                    Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
                         [hwnd](HRESULT result, ICoreWebView2Controller* ctrl) -> HRESULT {
                             controller = ctrl;
                             controller->get_CoreWebView2(&webview);
@@ -81,7 +83,7 @@ void InitializeWebView2(HWND hwnd) {
         ).Get());
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     
     mainHwnd = CreateMainWindow(hInstance, nCmdShow);
