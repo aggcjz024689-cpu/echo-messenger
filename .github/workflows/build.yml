@@ -16,10 +16,10 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
-    - name: Download WebView2 SDK
+    - name: Download and extract WebView2 SDK
       run: |
         curl -L -o webview2.zip https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.2903.40
-        unzip webview2.zip -d webview2
+        7z x webview2.zip -owebview2
         copy webview2\build\native\include\WebView2.h .
         copy webview2\build\native\x64\WebView2Loader.dll .
     
