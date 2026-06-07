@@ -16,10 +16,6 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
-    - name: Copy WebView2.h to include
-      run: |
-        copy WebView2.h include\
-    
     - name: Compile resource file
       run: |
         rc icon.rc
