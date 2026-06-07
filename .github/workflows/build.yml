@@ -13,7 +13,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install MSVC (Visual Studio)
+    - name: Install MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
     - name: Download WebView2 SDK
@@ -27,7 +27,8 @@ jobs:
       run: |
         curl -L -o wil.zip https://github.com/microsoft/wil/archive/refs/heads/master.zip
         unzip wil.zip -d wil-temp
-        move wil-temp\wil-master\include\wil .
+        mkdir wil
+        copy wil-temp\wil-master\include\wil\* wil\
     
     - name: Compile resource file
       run: |
@@ -35,7 +36,7 @@ jobs:
     
     - name: Compile EXE
       run: |
-        cl /EHsc /std:c++17 main.cpp icon.res /link user32.lib ole32.lib shell32.lib gdi32.lib
+        cl /EHsc /std:c++17 /I. /Iwil main.cpp icon.res /link user32.lib ole32.lib shell32.lib gdi32.lib
     
     - name: Upload EXE
       uses: actions/upload-artifact@v4
