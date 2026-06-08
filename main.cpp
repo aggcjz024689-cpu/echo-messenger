@@ -1,15 +1,26 @@
 #define UNICODE
 #define _UNICODE
 #include <windows.h>
-#include <WebView2.h>
 #include <objbase.h>
 #include <wrl/client.h>
 #include <wrl/event.h>
+#include <string>
 
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "shell32.lib")
 
 using namespace Microsoft::WRL;
+
+// Типы функций из WebView2
+typedef HRESULT (WINAPI *CreateCoreWebView2EnvironmentWithOptionsFn)(
+    PCWSTR browserExecutableFolder,
+    PCWSTR userDataFolder,
+    ICoreWebView2EnvironmentOptions* environmentOptions,
+    ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler* environmentCreatedHandler
+);
+
+static CreateCoreWebView2EnvironmentWithOptionsFn pfnCreateCoreWebView2Environment = nullptr;
+static HMODULE hWebView2Loader = nullptr;
 
 static ComPtr<ICoreWebView2> webview;
 static ComPtr<ICoreWebView2Controller> controller;
@@ -61,8 +72,20 @@ HWND CreateMainWindow(HINSTANCE hInstance, int nCmdShow) {
     return hwnd;
 }
 
+bool LoadWebView2Functions() {
+    hWebView2Loader = LoadLibraryW(L"WebView2Loader.dll");
+    if (!hWebView2Loader) return false;
+    
+    pfnCreateCoreWebView2Environment = (CreateCoreWebView2EnvironmentWithOptionsFn)GetProcAddress(hWebView2Loader, "CreateCoreWebView2EnvironmentWithOptions");
+    if (!pfnCreateCoreWebView2Environment) return false;
+    
+    return true;
+}
+
 void InitializeWebView2(HWND hwnd) {
-    CreateCoreWebView2EnvironmentWithOptions(
+    if (!pfnCreateCoreWebView2Environment) return;
+    
+    pfnCreateCoreWebView2Environment(
         nullptr, nullptr, nullptr,
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [hwnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
@@ -84,6 +107,11 @@ void InitializeWebView2(HWND hwnd) {
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    
+    if (!LoadWebView2Functions()) {
+        MessageBoxW(NULL, L"Не удалось загрузить WebView2Loader.dll\n\nУстановите Microsoft Edge WebView2 Runtime.", L"Ошибка", MB_ICONERROR);
+        return 1;
+    }
     
     mainHwnd = CreateMainWindow(hInstance, nCmdShow);
     if (!mainHwnd) return 1;
