@@ -2,6 +2,7 @@
 #define _UNICODE
 #include <windows.h>
 #include <WebView2.h>
+#include <WebView2Experiments.h>
 #include <objbase.h>
 #include <wrl/client.h>
 #include <wrl/event.h>
